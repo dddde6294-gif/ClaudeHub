@@ -1,0 +1,975 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Live token usage, speed and cost for your Claude Code agents — and a chat box to message them.">
+<title>ClaudeHub</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232a78d6' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Ccircle cx='4' cy='6' r='2'/%3E%3Ccircle cx='20' cy='6' r='2'/%3E%3Ccircle cx='4' cy='18' r='2'/%3E%3Ccircle cx='20' cy='18' r='2'/%3E%3Cpath d='M6 7l3.5 3M18 7l-3.5 3M6 17l3.5-3M18 17l-3.5-3'/%3E%3C/svg%3E">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --surface-2: #f3f2ee;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11,11,11,0.10);
+  --accent: #2a78d6;
+  --accent-wash: #e8f0fb;
+  --good: #0ca30c;
+  --warning: #fab219;
+  --critical: #d03b3b;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+  --s5: #e87ba4; --s6: #008300; --s7: #4a3aa7; --s8: #e34948;
+  --other: #898781;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #242422;
+    --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --accent: #3987e5; --accent-wash: #1c2a3d;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --other: #6b6a65;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --surface-2: #242422;
+  --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+  --accent: #3987e5; --accent-wash: #1c2a3d;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+  --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --other: #6b6a65;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--page); color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  overflow-x: hidden;
+}
+button, input, textarea { font: inherit; color: inherit; }
+code { font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 20px 16px 48px; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 16px; }
+h1 { font-size: 20px; margin: 0; font-weight: 650; letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px; }
+h1 svg { color: var(--accent); }
+.spacer { flex: 1; }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: 8px; padding: 2px; }
+.seg button { border: 0; background: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; color: var(--ink-2); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--border); font-weight: 600; }
+.status { font-size: 12px; color: var(--ink-2); display: flex; align-items: center; gap: 8px; }
+.pill { font-size: 11px; font-weight: 600; letter-spacing: .02em; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--border); }
+.pill.demo { background: var(--accent-wash); color: var(--ink); }
+.linkish { border: 0; background: none; padding: 0; color: var(--accent); cursor: pointer; font-size: 12px; text-decoration: underline; text-underline-offset: 2px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; flex: none; }
+.dot.live { background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 22%, transparent); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 0; }
+.card h2 { font-size: 13px; font-weight: 600; margin: 0 0 12px; color: var(--ink-2); }
+/* connect banner */
+.banner { margin-bottom: 12px; border-left: 3px solid var(--accent); }
+.banner h2 { color: var(--ink); font-size: 15px; margin-bottom: 6px; }
+.banner p { margin: 0 0 10px; color: var(--ink-2); max-width: 760px; }
+.banner pre { margin: 0 0 10px; background: var(--surface-2); border-radius: 8px; padding: 10px 12px; overflow-x: auto; }
+.banner .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.banner input { border: 1px solid var(--border); border-radius: 7px; padding: 5px 9px; background: var(--page); min-width: 0; }
+.banner input#pair-token { flex: 1 1 260px; max-width: 420px; }
+.banner input#pair-hub { flex: 0 1 220px; }
+.banner .fine { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+/* tiles */
+.hero { display: grid; grid-template-columns: minmax(240px, 1.3fr) repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+.tile .label { font-size: 12px; color: var(--ink-2); }
+.tile .value { font-size: 24px; font-weight: 600; margin-top: 4px; }
+.tile .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.tile.big .value { font-size: 48px; line-height: 1.05; }
+@media (max-width: 1100px) { .hero { grid-template-columns: repeat(3, minmax(0, 1fr)); } .tile.big { grid-column: 1 / -1; } }
+@media (max-width: 560px) { .hero { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tile .value { font-size: 20px; } .tile.big .value { font-size: 40px; } }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+@media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
+/* chart */
+.chart-wrap { position: relative; }
+svg.chart { display: block; width: 100%; height: 260px; overflow: visible; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: 12px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; max-width: 280px; }
+.legend i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.legend em { font-style: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.14); min-width: 180px; max-width: 320px; z-index: 5; display: none; }
+.tip .t { font-weight: 600; margin-bottom: 4px; }
+.tip .r { display: flex; gap: 6px; align-items: center; }
+.tip .r i { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+.tip .r em { font-style: normal; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
+.tip .r b { font-weight: 500; font-variant-numeric: tabular-nums; }
+.hbar { display: grid; grid-template-columns: minmax(90px, 150px) minmax(0, 1fr) auto; gap: 8px 10px; align-items: center; font-size: 12px; }
+.hbar .name { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hbar .track { height: 14px; position: relative; }
+.hbar .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); border-radius: 0 4px 4px 0; min-width: 2px; }
+.hbar .val { font-variant-numeric: tabular-nums; color: var(--ink); text-align: right; }
+/* table */
+.table-card { margin-top: 12px; padding: 0; overflow: hidden; }
+.table-card h2 { padding: 16px 16px 4px; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 8px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--grid); }
+th { font-weight: 600; font-size: 12px; color: var(--ink-2); background: var(--surface); }
+th button { all: unset; cursor: pointer; }
+th button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+th[aria-sort] { color: var(--ink); }
+th:first-child, td:first-child { text-align: left; }
+td { font-variant-numeric: tabular-nums; }
+tbody tr:hover td { background: var(--surface-2); }
+.agent-cell { display: flex; align-items: center; gap: 8px; max-width: 440px; }
+.agent-cell .names { min-width: 0; }
+.agent-cell .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.agent-cell .p { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agent-cell.sub { padding-left: 22px; }
+.agent-cell.sub .n::before { content: "↳ "; color: var(--muted); }
+.swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.muted { color: var(--muted); }
+.btn { border: 1px solid var(--border); background: var(--surface); border-radius: 7px; padding: 4px 10px; cursor: pointer; }
+.btn:hover { background: var(--surface-2); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:disabled { opacity: .5; cursor: default; }
+.empty { padding: 32px 16px; text-align: center; color: var(--ink-2); }
+.empty code { background: var(--surface-2); padding: 2px 6px; border-radius: 4px; }
+.note { font-size: 12px; color: var(--muted); margin-top: 16px; }
+/* chat drawer */
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(480px, 100vw); background: var(--surface); border-left: 1px solid var(--border); box-shadow: -10px 0 40px rgba(0,0,0,.15); display: flex; flex-direction: column; transform: translateX(105%); visibility: hidden; transition: transform .2s ease, visibility 0s linear .2s; z-index: 20; }
+.drawer.open { transform: none; visibility: visible; transition: transform .2s ease; }
+.drawer-head { padding: 14px 16px; border-bottom: 1px solid var(--grid); display: flex; gap: 10px; align-items: flex-start; }
+.drawer-head .dot { margin-top: 6px; }
+.drawer-head .names { flex: 1; min-width: 0; }
+.drawer-head .n { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drawer-head .p { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msgs { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.msg { max-width: 90%; padding: 8px 12px; border-radius: 12px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; }
+.msg.user { align-self: flex-end; background: var(--accent-wash); border-bottom-right-radius: 4px; }
+.msg.assistant { align-self: flex-start; background: var(--surface-2); border-bottom-left-radius: 4px; }
+.msg .meta { display: block; font-size: 11px; color: var(--muted); margin-top: 4px; white-space: normal; }
+.msg.sys { align-self: center; background: none; color: var(--muted); font-size: 12px; padding: 2px; text-align: center; }
+.msg.err { align-self: center; color: var(--critical); font-size: 12px; background: none; text-align: center; }
+.compose { border-top: 1px solid var(--grid); padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+.compose textarea { width: 100%; min-height: 70px; max-height: 200px; resize: vertical; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; background: var(--page); }
+.compose .row { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--ink-2); }
+.compose label { display: flex; align-items: center; gap: 6px; }
+.x { border: 0; background: none; font-size: 22px; line-height: 1; cursor: pointer; color: var(--ink-2); padding: 0 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="6" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="18" r="2"/><path d="M6 7l3.5 3M18 7l-3.5 3M6 17l3.5-3M18 17l-3.5-3"/></svg>
+      ClaudeHub
+    </h1>
+    <div class="seg" id="range" role="group" aria-label="Time range">
+      <button data-v="3600000" aria-pressed="false">1h</button>
+      <button data-v="86400000" aria-pressed="true">24h</button>
+      <button data-v="604800000" aria-pressed="false">7d</button>
+      <button data-v="2592000000" aria-pressed="false">30d</button>
+      <button data-v="all" aria-pressed="false">All</button>
+    </div>
+    <div class="seg" id="metric" role="group" aria-label="Measure">
+      <button data-v="all" aria-pressed="true">All tokens</button>
+      <button data-v="output" aria-pressed="false">Output</button>
+      <button data-v="cost" aria-pressed="false">Cost</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="status">
+      <span class="pill demo" id="mode-pill" hidden>Demo data</span>
+      <span class="dot" id="pulse"></span>
+      <span id="updated">Loading…</span>
+      <button class="linkish" id="disconnect" hidden>Disconnect</button>
+    </div>
+  </header>
+
+  <section class="card banner" id="banner" hidden>
+    <h2 id="banner-title"></h2>
+    <p id="banner-text"></p>
+    <pre id="banner-cmd" hidden><code></code></pre>
+    <form class="row" id="pair-form">
+      <input id="pair-hub" aria-label="Hub address" placeholder="http://127.0.0.1:4317" autocomplete="off" spellcheck="false">
+      <input id="pair-token" aria-label="Pairing token" placeholder="Pairing token (or open the link your hub printed)" autocomplete="off" spellcheck="false">
+      <button class="btn primary" type="submit">Connect</button>
+    </form>
+    <p class="fine" id="banner-fine">Your transcripts never leave your computer: this page talks straight to the hub on your machine, and the hub only answers browsers that have its pairing token.</p>
+  </section>
+
+  <section class="hero">
+    <div class="card tile big">
+      <div class="label" id="burn-label">Tokens per minute, last 5 min</div>
+      <div class="value" id="burn">–</div>
+      <div class="sub" id="burn-sub"></div>
+    </div>
+    <div class="card tile"><div class="label">Tokens</div><div class="value" id="t-total">–</div><div class="sub" id="t-total-sub"></div></div>
+    <div class="card tile"><div class="label">API-equivalent cost</div><div class="value" id="t-cost">–</div><div class="sub" id="t-cost-sub"></div></div>
+    <div class="card tile"><div class="label">Output speed</div><div class="value" id="t-speed">–</div><div class="sub">tokens/sec per response</div></div>
+    <div class="card tile"><div class="label">Cache hit rate</div><div class="value" id="t-cache">–</div><div class="sub" id="t-cache-sub"></div></div>
+    <div class="card tile"><div class="label">Agents working now</div><div class="value" id="t-live">–</div><div class="sub" id="t-live-sub"></div></div>
+  </section>
+
+  <section class="card">
+    <h2 id="chart-title">Tokens over time, by agent</h2>
+    <div class="chart-wrap" id="chart-wrap">
+      <svg class="chart" id="chart" role="img" aria-label="Stacked columns of usage per time bucket, by agent. The Agents table below lists the same numbers."></svg>
+      <div class="tip" id="tip" role="status"></div>
+    </div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <section class="grid2">
+    <div class="card"><h2 id="models-title">By model</h2><div class="hbar" id="models"></div></div>
+    <div class="card"><h2>Output speed by model (tokens/sec)</h2><div class="hbar" id="speeds"></div></div>
+  </section>
+
+  <section class="card table-card">
+    <h2>Agents</h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr id="thead"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div id="empty" class="empty" hidden></div>
+  </section>
+
+  <p class="note">
+    Read from Claude Code transcripts (<code>~/.claude/projects</code>) on the computer running the hub.
+    Cost is an estimate at API list prices; on a Pro or Max plan you are not billed per token.
+    Output speed = output tokens ÷ time from request start to its last streamed block, so it includes time to first token.
+  </p>
+</div>
+
+<aside class="drawer" id="drawer" aria-label="Message agent" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="dot" id="d-dot"></span>
+    <div class="names"><div class="n" id="d-name"></div><div class="p" id="d-proj"></div></div>
+    <button class="x" id="d-close" aria-label="Close">×</button>
+  </div>
+  <div class="msgs" id="msgs" aria-live="polite"></div>
+  <form class="compose" id="compose">
+    <textarea id="text" aria-label="Message" placeholder="Message this session…  (Enter to send, Shift+Enter for a new line)"></textarea>
+    <div class="row">
+      <label title="Continue in a new copy of the session and leave the original untouched. Safer while the session is open in another terminal."><input type="checkbox" id="fork"> Send as a fork</label>
+      <span class="spacer"></span>
+      <button class="btn primary" id="send" type="submit">Send</button>
+    </div>
+  </form>
+</aside>
+
+<script>
+// ---------- connection ----------
+// The hub marks the copy of this page it serves; the GitHub Pages copy keeps the
+// placeholder. Either way the page holds no secret: a browser pairs with the hub
+// by opening a link with #token=… once, and keeps the token in localStorage.
+const SERVED_BY_HUB = '__CLAUDEHUB_SERVED__' === 'hub';
+const DEFAULT_HUB = 'http://127.0.0.1:4317';
+const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]']);
+
+function recall(k) { try { return localStorage.getItem('claudehub.' + k); } catch { return null; } }
+function store(k, v) {
+  try { v == null ? localStorage.removeItem('claudehub.' + k) : localStorage.setItem('claudehub.' + k, v); } catch {}
+}
+// Only hubs on this computer: a pairing link must not point the page at someone else's server.
+function cleanHub(s) {
+  try {
+    const u = new URL(s || DEFAULT_HUB);
+    return u.protocol === 'http:' && LOOPBACK.has(u.hostname) ? u.origin : null;
+  } catch { return null; }
+}
+
+const conn = { base: '', token: '', mode: SERVED_BY_HUB ? 'hub' : 'demo', problem: null };
+
+// Saves the hub and token from a #hub=…&token=… pairing link; true if it paired.
+function readPairingLink() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (!h.get('token')) return false;
+  const hub = SERVED_BY_HUB ? null : cleanHub(h.get('hub'));
+  const ok = SERVED_BY_HUB || !!hub;
+  if (ok) {
+    if (hub) store('hub', hub);
+    store('token', h.get('token'));
+  }
+  // Don't leave the token in the address bar, history or bookmarks.
+  history.replaceState(null, '', location.pathname + location.search);
+  return ok;
+}
+function readConnection() {
+  if (!SERVED_BY_HUB) conn.base = cleanHub(recall('hub')) || DEFAULT_HUB;
+  conn.token = recall('token') || '';
+}
+readPairingLink();
+readConnection();
+// A pairing link opened in a tab that already shows this page only changes the fragment.
+window.addEventListener('hashchange', () => {
+  if (readPairingLink()) {
+    readConnection();
+    load();
+  }
+});
+
+function api(path, init = {}) {
+  return fetch(conn.base + path, { ...init, headers: { ...(init.headers || {}), 'x-claudehub-token': conn.token } });
+}
+
+const SLOTS = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6', '--s7', '--s8'];
+const TOP_N = 7; // 7 named series + "Other" stays within the validated 8-slot palette
+
+const state = {
+  range: '86400000', metric: 'all', data: null,
+  sort: { key: 'cost', dir: -1 },
+  colorOf: new Map(), // agentKey -> slot; color follows the agent, never its rank
+  topKeys: new Set(),
+  chatAgent: null, sending: false,
+};
+let demo = null;
+
+// ---------- formatting ----------
+function compact(n) {
+  if (n == null || Number.isNaN(n)) return '–';
+  const a = Math.abs(n);
+  if (a >= 1e9) return (n / 1e9).toFixed(a >= 1e10 ? 1 : 2) + 'B';
+  if (a >= 1e6) return (n / 1e6).toFixed(a >= 1e7 ? 1 : 2) + 'M';
+  if (a >= 1e3) return (n / 1e3).toFixed(a >= 1e4 ? 0 : 1) + 'K';
+  return String(Math.round(n));
+}
+function money(n) {
+  if (n == null) return '–';
+  if (n >= 1000) return '$' + compact(n);
+  if (n >= 100) return '$' + n.toFixed(0);
+  if (n >= 0.995) return '$' + n.toFixed(2);
+  if (n === 0) return '$0';
+  return '$' + n.toFixed(n >= 0.01 ? 2 : 3);
+}
+function metricVal(v) { return state.metric === 'cost' ? money(v) : compact(v); }
+function ago(ts) {
+  if (!ts) return '–';
+  const sec = Math.max(0, (Date.now() - ts) / 1000);
+  if (sec < 60) return 'just now';
+  if (sec < 3600) return Math.floor(sec / 60) + 'm ago';
+  if (sec < 86400) return Math.floor(sec / 3600) + 'h ago';
+  return Math.floor(sec / 86400) + 'd ago';
+}
+function shortPath(p) {
+  if (!p) return '';
+  return p.split(/[\\/]/).filter(Boolean).slice(-2).join('/');
+}
+function el(tag, props = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === 'class') e.className = v;
+    else if (k === 'style') e.style.cssText = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (v != null) e.setAttribute(k, v);
+  }
+  for (const k of kids) if (k != null) e.append(k);
+  return e;
+}
+function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+const SVGNS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs = {}) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+}
+const $ = (id) => document.getElementById(id);
+
+// ---------- controls ----------
+function bindSeg(id, key) {
+  const root = $(id);
+  const select = (b) => {
+    for (const x of root.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+    state[key] = b.dataset.v;
+  };
+  root.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    select(b);
+    store(key, b.dataset.v);
+    key === 'range' ? load() : render();
+  });
+  const saved = recall(key);
+  const btn = [...root.querySelectorAll('button')].find((b) => b.dataset.v === saved);
+  if (btn) select(btn);
+}
+bindSeg('range', 'range');
+bindSeg('metric', 'metric');
+
+// ---------- data ----------
+let loading = false;
+let reloadQueued = false;
+async function load() {
+  if (loading) { reloadQueued = true; return; }
+  loading = true;
+  try {
+    let problem;
+    if (!conn.token) {
+      problem = SERVED_BY_HUB ? 'unpaired' : 'unconnected';
+    } else {
+      try {
+        const res = await api('/api/stats?range=' + state.range);
+        if (res.ok) {
+          state.data = await res.json();
+          if (!SERVED_BY_HUB) conn.mode = 'remote';
+          setProblem(null);
+          $('updated').textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+          render();
+          return;
+        }
+        const body = await res.json().catch(() => ({}));
+        problem = body.code === 'origin' ? 'origin' : res.status === 401 ? 'unpaired' : 'unreachable';
+      } catch {
+        problem = 'unreachable';
+      }
+    }
+    if (!SERVED_BY_HUB) conn.mode = 'demo';
+    setProblem(problem);
+    if (!SERVED_BY_HUB) await showDemo();
+    else if (problem === 'unreachable') $('updated').textContent = 'Hub offline — retrying';
+    else { state.data = null; renderEmpty(); }
+  } finally {
+    loading = false;
+    if (reloadQueued) {
+      reloadQueued = false;
+      load();
+    }
+  }
+}
+
+async function showDemo() {
+  conn.mode = 'demo';
+  if (!demo) {
+    try { demo = await (await fetch('demo.json', { cache: 'no-store' })).json(); } catch { demo = false; }
+  }
+  $('updated').textContent = conn.token ? 'Retrying your hub every few seconds' : '';
+  if (!demo) { state.data = null; renderEmpty(); return; }
+  state.data = shiftTimes(demo.stats[state.range] || demo.stats.all, Date.now() - demo.now);
+  render();
+}
+
+// Demo data was generated at build time; move it to "now" so it looks current.
+function shiftTimes(d, delta) {
+  const c = structuredClone(d);
+  c.now += delta;
+  c.series.start += delta;
+  for (const a of c.agents) {
+    if (a.firstTs) a.firstTs += delta;
+    if (a.lastTs) a.lastTs += delta;
+  }
+  return c;
+}
+
+setInterval(load, 5000);
+load();
+
+// ---------- connect banner ----------
+function repoUrl() {
+  const m = /^([a-z0-9-]+)\.github\.io$/i.exec(location.hostname);
+  const repo = location.pathname.split('/').filter(Boolean)[0];
+  return m && repo ? `https://github.com/${m[1]}/${repo}` : null;
+}
+
+function setProblem(p) {
+  conn.problem = p;
+  const banner = $('banner');
+  $('mode-pill').hidden = conn.mode !== 'demo' || p == null;
+  $('disconnect').hidden = SERVED_BY_HUB || !conn.token;
+  if (p == null) { banner.hidden = true; return; }
+  banner.hidden = false;
+  const repo = repoUrl();
+  const dir = repo ? repo.split('/').pop() : 'ClaudeHub';
+  const start = repo
+    ? `git clone ${repo}.git\ncd ${dir}\nnode server.js`
+    : `cd ClaudeHub   # this repository\nnode server.js`;
+  let title, text, showCmd = false, showForm = true;
+  if (SERVED_BY_HUB) {
+    if (p === 'unreachable') {
+      title = 'Your hub stopped';
+      text = 'Start it again with node server.js. This page reconnects by itself.';
+      showForm = false;
+    } else {
+      title = 'Pair this browser with your hub';
+      text = 'Open the link the hub printed when it started (http://localhost:…/#token=…), or paste the token from ~/.claudehub/token below.';
+    }
+  } else if (p === 'unconnected') {
+    title = 'You’re looking at demo data';
+    text = 'ClaudeHub reads the Claude Code transcripts on your computer, so a small helper (the hub) runs there. Start it with Node 18 or newer, then open the “Hosted dashboard” link it prints. That link pairs this browser, and your own agents show up here.';
+    showCmd = true;
+  } else if (p === 'unpaired') {
+    title = 'Your hub is running, but this browser isn’t paired';
+    text = 'Open the “Hosted dashboard” link your hub printed in the terminal, or paste its token below. (The token is saved in ~/.claudehub/token.)';
+  } else if (p === 'origin') {
+    title = 'Your hub doesn’t accept this page';
+    text = `Restart the hub with --pages-url ${location.origin + location.pathname} so it trusts this address.`;
+    showForm = false;
+  } else {
+    title = `Can’t reach your hub at ${conn.base.replace('http://', '')}`;
+    text = 'Start it again (below). If the browser asks to let this site access apps or devices on your computer, choose Allow. Safari can block this; open http://localhost:4317 on your computer instead. Showing demo data until it’s back.';
+    showCmd = true;
+  }
+  $('banner-title').textContent = title;
+  $('banner-text').textContent = text;
+  $('banner-cmd').hidden = !showCmd;
+  $('banner-cmd').querySelector('code').textContent = start;
+  $('pair-form').hidden = !showForm;
+  $('pair-hub').hidden = SERVED_BY_HUB;
+  $('banner-fine').hidden = SERVED_BY_HUB;
+  if (document.activeElement !== $('pair-hub')) $('pair-hub').value = conn.base;
+}
+
+$('pair-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const token = $('pair-token').value.trim();
+  if (!token) { $('pair-token').focus(); return; }
+  if (!SERVED_BY_HUB) {
+    const hub = cleanHub($('pair-hub').value.trim());
+    if (!hub) { $('banner-text').textContent = 'The hub address must be on this computer, like http://127.0.0.1:4317.'; return; }
+    store('hub', hub);
+    conn.base = hub;
+  }
+  store('token', token);
+  conn.token = token;
+  $('pair-token').value = '';
+  $('updated').textContent = 'Connecting…';
+  load();
+});
+$('disconnect').addEventListener('click', () => {
+  store('token', null);
+  conn.token = '';
+  conn.mode = 'demo';
+  closeChat();
+  load();
+});
+
+// ---------- render ----------
+function metricOf(stats) {
+  return state.metric === 'cost' ? stats.cost : state.metric === 'output' ? stats.output : stats.total;
+}
+
+function render() {
+  const d = state.data;
+  if (!d) return;
+  renderTiles(d);
+  const top = pickTop(d);
+  renderChart(d, top);
+  renderModels(d);
+  renderTable(d);
+}
+
+function renderEmpty() {
+  $('updated').textContent = '';
+  for (const id of ['tbody', 'legend', 'chart', 'models', 'speeds']) $(id).replaceChildren();
+  for (const id of ['burn', 't-total', 't-cost', 't-speed', 't-cache', 't-live']) $(id).textContent = '–';
+  for (const id of ['burn-sub', 't-total-sub', 't-cost-sub', 't-cache-sub', 't-live-sub']) $(id).textContent = '';
+}
+
+function renderTiles(d) {
+  const t = d.totals;
+  const burn = d.live.perMinute[state.metric];
+  $('burn').textContent = metricVal(burn);
+  $('burn-label').textContent =
+    (state.metric === 'cost' ? 'Spend' : state.metric === 'output' ? 'Output tokens' : 'Tokens') + ' per minute, last ' + d.live.windowMin + ' min';
+  $('burn-sub').textContent = burn > 0 ? `≈ ${metricVal(burn * 60)} per hour at this pace` : 'Nothing running right now';
+  $('t-total').textContent = compact(t.total);
+  $('t-total-sub').textContent = `${compact(t.output)} output · ${t.requests.toLocaleString()} requests`;
+  $('t-cost').textContent = money(t.cost);
+  $('t-cost-sub').textContent = t.unpriced ? `${t.unpriced} requests on unpriced models` : 'at API list prices';
+  $('t-speed').textContent = t.outputSpeed ? Math.round(t.outputSpeed) : '–';
+  $('t-cache').textContent = t.cacheHitRate == null ? '–' : Math.round(t.cacheHitRate * 100) + '%';
+  $('t-cache-sub').textContent = `${compact(t.cacheRead)} read · ${compact(t.cacheWrite)} written`;
+  $('t-live').textContent = d.live.agents;
+  $('t-live-sub').textContent = `${d.agents.length} active in this range`;
+  $('pulse').classList.toggle('live', d.live.agents > 0);
+}
+
+function pickTop(d) {
+  const ranked = d.agents.filter((a) => metricOf(a.stats) > 0).sort((a, b) => metricOf(b.stats) - metricOf(a.stats));
+  const top = ranked.slice(0, TOP_N);
+  // Keep each agent's slot across refreshes and filters; give newcomers a free slot.
+  const count = new Map();
+  for (const a of top) if (state.colorOf.has(a.key)) count.set(state.colorOf.get(a.key), (count.get(state.colorOf.get(a.key)) || 0) + 1);
+  const used = new Set([...count.keys()]);
+  for (const a of top) {
+    const cur = state.colorOf.get(a.key);
+    if (cur != null && count.get(cur) === 1) continue;
+    if (cur != null) count.set(cur, count.get(cur) - 1);
+    let slot = 0;
+    while (used.has(slot) && slot < SLOTS.length - 1) slot++;
+    state.colorOf.set(a.key, slot);
+    used.add(slot);
+    count.set(slot, 1);
+  }
+  state.topKeys = new Set(top.map((a) => a.key));
+  return { list: top, hasOther: ranked.length > TOP_N };
+}
+function colorFor(key) {
+  return key === '__other' ? cssVar('--other') : cssVar(SLOTS[(state.colorOf.get(key) ?? 7) % SLOTS.length]);
+}
+
+function renderChart(d, top) {
+  const mi = state.metric === 'cost' ? 2 : state.metric === 'output' ? 1 : 0;
+  $('chart-title').textContent = { all: 'Tokens over time, by agent', output: 'Output tokens over time, by agent', cost: 'Cost over time, by agent' }[state.metric];
+  const keys = top.list.map((a) => a.key);
+  const keySet = new Set(keys);
+  const labelOf = new Map(d.agents.map((a) => [a.key, a.label]));
+  const { start, bucketMs, buckets } = d.series;
+
+  const stacks = buckets.map((b) => {
+    const segs = [];
+    let other = 0;
+    for (const k of keys) if (b[k] && b[k][mi] > 0) segs.push({ key: k, v: b[k][mi] });
+    for (const [k, v] of Object.entries(b)) if (!keySet.has(k)) other += v[mi];
+    if (other > 0) segs.push({ key: '__other', v: other });
+    return { segs, total: segs.reduce((x, y) => x + y.v, 0) };
+  });
+
+  const svg = $('chart');
+  svg.replaceChildren();
+  const W = svg.clientWidth || 800, H = 260;
+  const m = { l: 52, r: 8, t: 8, b: 24 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  const max = Math.max(...stacks.map((x) => x.total), 0);
+  const ticks = niceTicks(max);
+  const yMax = ticks[ticks.length - 1] || 1;
+  const y = (v) => m.t + ih - (v / yMax) * ih;
+  const muted = cssVar('--muted');
+
+  for (const tv of ticks) {
+    svg.append(svgEl('line', { x1: m.l, x2: W - m.r, y1: y(tv), y2: y(tv), stroke: tv === 0 ? cssVar('--axis') : cssVar('--grid'), 'stroke-width': 1 }));
+    const tx = svgEl('text', { x: m.l - 8, y: y(tv) + 4, 'text-anchor': 'end', fill: muted, 'font-size': 11, style: 'font-variant-numeric: tabular-nums' });
+    tx.textContent = state.metric === 'cost' ? money(tv) : compact(tv);
+    svg.append(tx);
+  }
+
+  const n = buckets.length;
+  const band = iw / n;
+  const bw = Math.max(1, Math.min(24, band - 2));
+  const gap = bw >= 4 ? 2 : 0;
+  const hl = svgEl('rect', { y: m.t, height: ih, fill: cssVar('--ink'), opacity: 0, 'pointer-events': 'none' });
+  svg.append(hl);
+  const gBars = svgEl('g');
+  stacks.forEach((st, i) => {
+    const x = m.l + i * band + (band - bw) / 2;
+    let acc = 0;
+    st.segs.forEach((seg, j) => {
+      const yBase = y(acc) - (j > 0 ? gap : 0);
+      acc += seg.v;
+      const h = Math.max(1, yBase - y(acc));
+      const isTop = j === st.segs.length - 1;
+      gBars.append(barPath(x, yBase - h, bw, h, isTop ? Math.min(4, bw / 2, h) : 0, colorFor(seg.key)));
+    });
+  });
+  svg.append(gBars);
+
+  const span = n * bucketMs;
+  const fmtTick = (t) => span <= 36 * 3600e3 ? t.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    : bucketMs >= 86400e3 ? t.toLocaleDateString([], { month: 'short', day: 'numeric' })
+    : t.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric' });
+  const every = Math.max(1, Math.ceil(n / Math.max(2, Math.floor(iw / 110))));
+  for (let i = 0; i < n; i += every) {
+    const tx = svgEl('text', { x: m.l + i * band + band / 2, y: H - 6, 'text-anchor': 'middle', fill: muted, 'font-size': 11 });
+    tx.textContent = fmtTick(new Date(start + i * bucketMs));
+    svg.append(tx);
+  }
+
+  // Hover layer: one hit column per bucket, the full plot height.
+  const tip = $('tip');
+  const hit = svgEl('rect', { x: m.l, y: m.t, width: iw, height: ih, fill: 'transparent' });
+  const fmtRange = (a, b) => bucketMs >= 86400e3
+    ? a.toLocaleDateString([], { month: 'short', day: 'numeric' })
+    : `${a.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} – ${b.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  hit.addEventListener('mousemove', (e) => {
+    const r = svg.getBoundingClientRect();
+    const i = Math.min(n - 1, Math.max(0, Math.floor((e.clientX - r.left - m.l) / band)));
+    hl.setAttribute('x', m.l + i * band); hl.setAttribute('width', band); hl.setAttribute('opacity', 0.06);
+    const st = stacks[i];
+    tip.replaceChildren(el('div', { class: 't' }, fmtRange(new Date(start + i * bucketMs), new Date(start + (i + 1) * bucketMs))));
+    if (!st.segs.length) tip.append(el('div', { class: 'muted' }, 'No activity'));
+    for (const seg of [...st.segs].sort((a, b) => b.v - a.v)) {
+      tip.append(el('div', { class: 'r' }, el('i', { style: `background:${colorFor(seg.key)}` }),
+        el('em', {}, seg.key === '__other' ? 'Other agents' : labelOf.get(seg.key) || seg.key), el('b', {}, metricVal(seg.v))));
+    }
+    if (st.segs.length > 1) tip.append(el('div', { class: 'r' }, el('em', {}, 'Total'), el('b', {}, metricVal(st.total))));
+    tip.style.display = 'block';
+    const wrap = $('chart-wrap').getBoundingClientRect();
+    let left = e.clientX - wrap.left + 14;
+    if (left + tip.offsetWidth > wrap.width) left = e.clientX - wrap.left - tip.offsetWidth - 14;
+    tip.style.left = Math.max(0, left) + 'px';
+    tip.style.top = Math.max(0, e.clientY - wrap.top - 20) + 'px';
+  });
+  hit.addEventListener('mouseleave', () => { tip.style.display = 'none'; hl.setAttribute('opacity', 0); });
+  svg.append(hit);
+
+  const legend = $('legend');
+  legend.replaceChildren();
+  for (const a of top.list) legend.append(el('span', { title: a.label }, el('i', { style: `background:${colorFor(a.key)}` }), el('em', {}, a.label)));
+  if (top.hasOther) legend.append(el('span', {}, el('i', { style: `background:${colorFor('__other')}` }), el('em', {}, 'Other agents')));
+  if (!top.list.length) legend.append(el('span', { class: 'muted' }, 'No usage in this range'));
+}
+
+function barPath(x, y, w, h, r, fill) {
+  // Rounded data-end on top, square at the baseline.
+  const d = r > 0
+    ? `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`
+    : `M${x},${y + h}V${y}H${x + w}V${y + h}Z`;
+  return svgEl('path', { d, fill });
+}
+
+function niceTicks(max) {
+  if (!(max > 0)) return [0, 1];
+  const raw = max / 4;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map((f) => f * mag).find((st) => st >= raw);
+  const out = [];
+  for (let v = 0; v <= max + step * 0.999; v += step) out.push(+v.toPrecision(12));
+  return out;
+}
+
+function hbars(box, rows, value, label) {
+  box.replaceChildren();
+  const max = Math.max(...rows.map(value), 0) || 1;
+  for (const r of rows) {
+    box.append(el('div', { class: 'name', title: r.model }, r.model),
+      el('div', { class: 'track' }, el('div', { class: 'fill', style: `width:${(value(r) / max) * 100}%` })),
+      el('div', { class: 'val' }, label(r)));
+  }
+}
+
+function renderModels(d) {
+  $('models-title').textContent = { all: 'Tokens by model', output: 'Output tokens by model', cost: 'Cost by model' }[state.metric];
+  const rows = d.models.filter((r) => metricOf(r.stats) > 0).sort((a, b) => metricOf(b.stats) - metricOf(a.stats));
+  hbars($('models'), rows, (r) => metricOf(r.stats), (r) => metricVal(metricOf(r.stats)));
+  if (!rows.length) $('models').append(el('div', { class: 'muted' }, 'No usage in this range'));
+
+  const srows = d.models.filter((r) => r.stats.outputSpeed).sort((a, b) => b.stats.outputSpeed - a.stats.outputSpeed);
+  hbars($('speeds'), srows, (r) => r.stats.outputSpeed, (r) => Math.round(r.stats.outputSpeed) + ' tok/s');
+  if (!srows.length) $('speeds').append(el('div', { class: 'muted' }, 'Not enough long responses yet'));
+}
+
+const COLUMNS = [
+  { key: 'label', label: 'Agent', get: (a) => a.label.toLowerCase() },
+  { key: 'rate', label: 'Now /min', title: 'Average per minute over the last 5 minutes', get: (a) => a.rate[state.metric], fmt: (a) => a.rate[state.metric] ? metricVal(a.rate[state.metric]) : '–' },
+  { key: 'speed', label: 'Out tok/s', title: 'Output tokens per second per response', get: (a) => a.stats.outputSpeed || 0, fmt: (a) => a.stats.outputSpeed ? Math.round(a.stats.outputSpeed) : '–' },
+  { key: 'total', label: 'Tokens', get: (a) => a.stats.total, fmt: (a) => compact(a.stats.total) },
+  { key: 'input', label: 'Input', get: (a) => a.stats.input, fmt: (a) => compact(a.stats.input) },
+  { key: 'cacheWrite', label: 'Cache write', get: (a) => a.stats.cacheWrite, fmt: (a) => compact(a.stats.cacheWrite) },
+  { key: 'cacheRead', label: 'Cache read', get: (a) => a.stats.cacheRead, fmt: (a) => compact(a.stats.cacheRead) },
+  { key: 'output', label: 'Output', get: (a) => a.stats.output, fmt: (a) => compact(a.stats.output) },
+  { key: 'cost', label: 'Cost', get: (a) => a.stats.cost, fmt: (a) => money(a.stats.cost) },
+  { key: 'requests', label: 'Requests', get: (a) => a.stats.requests, fmt: (a) => a.stats.requests.toLocaleString() },
+  { key: 'model', label: 'Model', get: (a) => a.models.join(','), fmt: (a) => a.models.map((x) => x.replace(/^claude-/, '')).join(', ') || '–' },
+  { key: 'last', label: 'Last active', get: (a) => a.lastTs || 0, fmt: (a) => ago(a.lastTs) },
+  { key: 'msg', label: '' },
+];
+
+function canMessage(a) {
+  return a.canMessage && (conn.mode === 'demo' || (state.data.hub && state.data.hub.messaging));
+}
+
+function renderTable(d) {
+  const thead = $('thead');
+  thead.replaceChildren();
+  for (const c of COLUMNS) {
+    const th = el('th', c.title ? { title: c.title } : {});
+    if (c.get) {
+      const active = state.sort.key === c.key;
+      if (active) th.setAttribute('aria-sort', state.sort.dir > 0 ? 'ascending' : 'descending');
+      th.append(el('button', {
+        onclick: () => {
+          state.sort = { key: c.key, dir: active ? -state.sort.dir : c.key === 'label' ? 1 : -1 };
+          renderTable(state.data);
+        },
+      }, c.label + (active ? (state.sort.dir > 0 ? ' ↑' : ' ↓') : '')));
+    } else th.append(c.label);
+    thead.append(th);
+  }
+
+  const col = COLUMNS.find((c) => c.key === state.sort.key);
+  const cmp = (a, b) => {
+    const x = col.get(a), y = col.get(b);
+    return (x < y ? -1 : x > y ? 1 : 0) * state.sort.dir;
+  };
+  // Sessions sorted; each session's subagents directly beneath it.
+  const keys = new Set(d.agents.map((a) => a.key));
+  const children = new Map();
+  const roots = [];
+  for (const a of d.agents) {
+    if (a.parent && keys.has(a.parent)) {
+      if (!children.has(a.parent)) children.set(a.parent, []);
+      children.get(a.parent).push(a);
+    } else roots.push(a);
+  }
+  const ordered = [];
+  for (const r of roots.sort(cmp)) ordered.push(r, ...(children.get(r.key) || []).sort(cmp));
+
+  const tbody = $('tbody');
+  tbody.replaceChildren();
+  for (const a of ordered) {
+    const tr = el('tr');
+    for (const c of COLUMNS) {
+      if (c.key === 'label') {
+        const sw = el('span', { class: 'swatch', style: state.topKeys.has(a.key) ? `background:${colorFor(a.key)}` : '' });
+        tr.append(el('td', {}, el('div', { class: 'agent-cell' + (a.kind === 'subagent' ? ' sub' : ''), title: a.label },
+          el('span', { class: 'dot' + (a.live ? ' live' : ''), title: a.live ? 'Working now' : 'Idle' }), sw,
+          el('div', { class: 'names' }, el('div', { class: 'n' }, a.label),
+            el('div', { class: 'p' }, [shortPath(a.project), a.branch].filter(Boolean).join(' · '))))));
+      } else if (c.key === 'msg') {
+        const td = el('td');
+        if (canMessage(a)) td.append(el('button', { class: 'btn', onclick: () => openChat(a) }, 'Message'));
+        tr.append(td);
+      } else {
+        tr.append(el('td', c.key === 'model' ? { class: 'muted' } : {}, String(c.fmt(a))));
+      }
+    }
+    tbody.append(tr);
+  }
+  const empty = $('empty');
+  empty.hidden = ordered.length > 0;
+  if (!ordered.length) {
+    empty.replaceChildren('No Claude Code activity in this range. The hub reads ',
+      el('code', {}, (d.roots || []).join(', ')), ' — try a longer range, or start it with ', el('code', {}, '--dir <path>'), '.');
+  }
+}
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => state.data && renderChart(state.data, pickTop(state.data)), 100);
+});
+
+// ---------- chat ----------
+const drawer = $('drawer');
+const msgs = $('msgs');
+function closeChat() {
+  drawer.classList.remove('open');
+  drawer.setAttribute('aria-hidden', 'true');
+  state.chatAgent = null;
+}
+$('d-close').addEventListener('click', closeChat);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && drawer.classList.contains('open')) closeChat(); });
+
+async function openChat(a) {
+  state.chatAgent = a;
+  $('d-name').textContent = a.label;
+  $('d-proj').textContent = [a.project, a.branch].filter(Boolean).join(' · ');
+  $('d-dot').className = 'dot' + (a.live ? ' live' : '');
+  // Two processes resuming one session can interleave writes; default to a fork while it's busy.
+  $('fork').checked = !!a.live;
+  drawer.classList.add('open');
+  drawer.setAttribute('aria-hidden', 'false');
+  msgs.replaceChildren(el('div', { class: 'msg sys' }, 'Loading conversation…'));
+  try {
+    let chat;
+    if (conn.mode === 'demo') {
+      const delta = Date.now() - demo.now;
+      chat = (demo.chats[a.key] || []).map((m) => ({ ...m, ts: m.ts + delta }));
+    } else {
+      const r = await api('/api/agents/' + encodeURIComponent(a.key) + '/chat');
+      if (!r.ok) throw new Error();
+      chat = (await r.json()).chat;
+    }
+    msgs.replaceChildren();
+    if (!chat.length) msgs.append(el('div', { class: 'msg sys' }, 'No messages yet'));
+    for (const m of chat) addMsg(m.role, m.text, m.ts);
+    if (a.live) msgs.append(el('div', { class: 'msg sys' }, 'This session is working right now, so sending as a fork is safer.'));
+  } catch {
+    msgs.replaceChildren(el('div', { class: 'msg err' }, 'Could not load the conversation'));
+  }
+  msgs.scrollTop = msgs.scrollHeight;
+  $('text').focus();
+}
+
+function addMsg(role, text, ts) {
+  const m = el('div', { class: 'msg ' + role }, text);
+  if (ts) m.append(el('span', { class: 'meta' }, new Date(ts).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })));
+  msgs.append(m);
+  return m;
+}
+
+const textEl = $('text');
+textEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); $('compose').requestSubmit(); }
+});
+$('compose').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const a = state.chatAgent;
+  const text = textEl.value.trim();
+  if (!a || !text || state.sending) return;
+  if (conn.mode === 'demo') {
+    addMsg('user', text, Date.now());
+    msgs.append(el('div', { class: 'msg sys' }, 'This is demo data, so nothing was sent. Pair this page with the hub on your computer to message your real sessions.'));
+    textEl.value = '';
+    msgs.scrollTop = msgs.scrollHeight;
+    return;
+  }
+  state.sending = true;
+  const sendBtn = $('send');
+  sendBtn.disabled = true;
+  sendBtn.textContent = 'Working…';
+  textEl.value = '';
+  addMsg('user', text, Date.now());
+  const reply = addMsg('assistant', '');
+  const body = document.createTextNode('');
+  const status = el('span', { class: 'meta' }, 'Starting…');
+  reply.append(body, status);
+  msgs.scrollTop = msgs.scrollHeight;
+  try {
+    const res = await api('/api/agents/' + encodeURIComponent(a.key) + '/message', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text, fork: $('fork').checked }),
+    });
+    if (!res.ok || !res.body) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'HTTP ' + res.status);
+    }
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while ((i = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, i);
+        buf = buf.slice(i + 1);
+        if (!line.trim()) continue;
+        const ev = JSON.parse(line);
+        if (ev.type === 'init') status.textContent = 'Thinking…';
+        else if (ev.type === 'text') { body.textContent += ev.text; status.textContent = 'Writing…'; }
+        else if (ev.type === 'tool') status.textContent = 'Using ' + ev.name + '…';
+        else if (ev.type === 'done') {
+          status.textContent = [ev.isError ? 'Finished with an error' : 'Done', ev.cost != null ? money(ev.cost) : null,
+            ev.sessionId && ev.sessionId !== a.sessionId ? 'forked as ' + ev.sessionId.slice(0, 8) : null].filter(Boolean).join(' · ');
+          if (ev.isError && ev.error) msgs.append(el('div', { class: 'msg err' }, String(ev.error)));
+        } else if (ev.type === 'error') {
+          status.textContent = 'Failed';
+          msgs.append(el('div', { class: 'msg err' }, ev.error));
+        }
+        msgs.scrollTop = msgs.scrollHeight;
+      }
+    }
+    if (!body.textContent) body.textContent = '(no text reply)';
+  } catch (err) {
+    status.textContent = 'Failed';
+    msgs.append(el('div', { class: 'msg err' }, err.message || 'Could not reach the hub'));
+  } finally {
+    state.sending = false;
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Send';
+    msgs.scrollTop = msgs.scrollHeight;
+    load();
+  }
+});
+</script>
+</body>
+</html>
