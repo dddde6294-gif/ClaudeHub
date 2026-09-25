@@ -1,0 +1,25 @@
+{
+  "name": "claudehub",
+  "version": "0.1.0",
+  "description": "Live dashboard of token usage, speed and cost for your Claude Code agents, with a chat box to message them",
+  "homepage": "https://dddde6294-gif.github.io/ClaudeHub/",
+  "private": true,
+  "bin": {
+    "claudehub": "server.js"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "demo": "node server.js --demo",
+    "report": "node server.js --report",
+    "test": "node --test test/*.test.js",
+    "build:pages": "node scripts/build-pages.js _site"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "server.js",
+    "lib/",
+    "public/"
+  ]
+}
