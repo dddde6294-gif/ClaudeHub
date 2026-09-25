@@ -11,6 +11,19 @@ A live dashboard for your Claude Code agents. It shows how many tokens each sess
 - **Cost estimate:** at API list prices, per agent and per model
 - **Live status:** which agents are working right now; subagents appear under the session that started them
 - **Message a session:** a chat drawer that sends your message to the session and streams back its reply
+- **Office:** every agent gets a name and a character in an animated office (see below)
+
+## The office
+
+![The office view](docs/office.png)
+
+Every agent gets a name, like "Kai R.", and a character. What the character does follows the agent's real activity:
+
+- **Working now:** sits at their desk typing. The screen shows code, and tokens float up faster when the agent is busier.
+- **Active in the last 45 minutes:** on a break. They wander between the coffee machine, the water cooler, the windows and the plant.
+- **Idle for longer:** relaxes in the lounge, and naps if idle for more than 3 hours.
+
+Subagents are smaller characters. Click anyone to see what they're working on and their token stats, or to message or rename them. Names are saved in your browser. The office shows the 20 most recently active agents in the selected time range.
 
 ## Quick start
 

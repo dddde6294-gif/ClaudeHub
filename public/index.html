@@ -26,6 +26,9 @@
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
   --s5: #e87ba4; --s6: #008300; --s7: #4a3aa7; --s8: #e34948;
   --other: #898781;
+  --office-floor: #efece5; --office-tile: #e7e3da; --office-wall: #dedad0; --office-sky: #c9e0f5;
+  --office-rug: #e3ebf5; --office-wood: #c79d6d; --office-wood-2: #a57b4d; --office-chair: #55595f;
+  --office-couch: #7f92b8; --office-couch-2: #6a7da3; --office-metal: #5f6368;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -37,6 +40,9 @@
     --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
     --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
     --other: #6b6a65;
+    --office-floor: #1f1f1d; --office-tile: #242422; --office-wall: #2c2c29; --office-sky: #1b2a3c;
+    --office-rug: #1c2531; --office-wood: #7c5f40; --office-wood-2: #5f4831; --office-chair: #3b3e43;
+    --office-couch: #45587c; --office-couch-2: #3a4b6b; --office-metal: #4a4d52;
   }
 }
 :root[data-theme="dark"] {
@@ -48,6 +54,9 @@
   --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
   --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
   --other: #6b6a65;
+    --office-floor: #1f1f1d; --office-tile: #242422; --office-wall: #2c2c29; --office-sky: #1b2a3c;
+    --office-rug: #1c2531; --office-wood: #7c5f40; --office-wood-2: #5f4831; --office-chair: #3b3e43;
+    --office-couch: #45587c; --office-couch-2: #3a4b6b; --office-metal: #4a4d52;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -140,6 +149,18 @@ tbody tr:hover td { background: var(--surface-2); }
 .empty { padding: 32px 16px; text-align: center; color: var(--ink-2); }
 .empty code { background: var(--surface-2); padding: 2px 6px; border-radius: 4px; }
 .note { font-size: 12px; color: var(--muted); margin-top: 16px; }
+/* office */
+.office-card { margin-bottom: 12px; }
+.office-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 10px; }
+.office-head h2 { margin: 0; }
+.office-head .muted { font-size: 12px; }
+.office-wrap { position: relative; overflow-x: auto; }
+#office { display: block; margin: 0 auto; border-radius: 8px; }
+.office-pop { position: absolute; z-index: 6; width: 260px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,.18); font-size: 12px; }
+.office-pop .nm { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 650; }
+.office-pop .nm .spacer { flex: 1; }
+.office-pop .row { margin-top: 4px; color: var(--ink-2); overflow-wrap: anywhere; }
+.office-pop .btns { display: flex; gap: 8px; margin-top: 10px; }
 /* chat drawer */
 .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(480px, 100vw); background: var(--surface); border-left: 1px solid var(--border); box-shadow: -10px 0 40px rgba(0,0,0,.15); display: flex; flex-direction: column; transform: translateX(105%); visibility: hidden; transition: transform .2s ease, visibility 0s linear .2s; z-index: 20; }
 .drawer.open { transform: none; visibility: visible; transition: transform .2s ease; }
@@ -213,6 +234,17 @@ tbody tr:hover td { background: var(--surface-2); }
     <div class="card tile"><div class="label">Output speed</div><div class="value" id="t-speed">–</div><div class="sub">tokens/sec per response</div></div>
     <div class="card tile"><div class="label">Cache hit rate</div><div class="value" id="t-cache">–</div><div class="sub" id="t-cache-sub"></div></div>
     <div class="card tile"><div class="label">Agents working now</div><div class="value" id="t-live">–</div><div class="sub" id="t-live-sub"></div></div>
+  </section>
+
+  <section class="card office-card">
+    <div class="office-head">
+      <h2>Office</h2>
+      <span class="muted" id="office-note"></span>
+    </div>
+    <div class="office-wrap" id="office-wrap">
+      <canvas id="office" role="img" aria-label="Animated office. Each agent is a character: agents working now type at their desks, recently active ones take breaks, idle ones rest in the lounge. The Agents table lists the same agents."></canvas>
+      <div class="office-pop" id="office-pop" hidden></div>
+    </div>
   </section>
 
   <section class="card">
@@ -402,6 +434,459 @@ function bindSeg(id, key) {
 bindSeg('range', 'range');
 bindSeg('metric', 'metric');
 
+// ---------- office ----------
+// Every agent is a character. What they do follows real activity: agents working
+// right now type at their desks, recently active ones take breaks, idle ones rest.
+const NAMES = ['Ada', 'Alex', 'Arlo', 'Ash', 'Bea', 'Blake', 'Cam', 'Cleo', 'Dani', 'Dev', 'Eli', 'Ember', 'Finn', 'Gray',
+  'Harper', 'Indy', 'Ivy', 'Jules', 'Juno', 'Kai', 'Kit', 'Lane', 'Leo', 'Luca', 'Mika', 'Milo', 'Nico', 'Nova', 'Ollie',
+  'Pax', 'Pip', 'Quinn', 'Remy', 'Ren', 'River', 'Robin', 'Rowan', 'Sage', 'Sam', 'Sky', 'Tate', 'Teo', 'Uma', 'Vic',
+  'Wren', 'Yael', 'Zed', 'Zuri'];
+const SKIN = ['#f3cfb1', '#e2b08a', '#c98d63', '#a86f4c', '#7d4f35', '#5c3a26'];
+const HAIR = ['#2b2118', '#5a3a22', '#8b5a2b', '#c9a15b', '#b5452f', '#1b1b1b', '#9a9a9a', '#e8d9a8'];
+const SHIRT = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#4a3aa7', '#e34948', '#3a9d9b', '#7a6b5d', '#8e5bc4'];
+const PANTS = ['#3b4252', '#4b3f35', '#2f3e46', '#5a5a66', '#26344a'];
+
+function hashStr(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+let customNames = {};
+try { customNames = JSON.parse(recall('names') || '{}') || {}; } catch { customNames = {}; }
+// Made-up but stable: the same agent always gets the same name.
+function agentName(a) {
+  const key = typeof a === 'string' ? a : a.key;
+  if (customNames[key]) return customNames[key];
+  const h = hashStr(key);
+  return `${NAMES[h % NAMES.length]} ${String.fromCharCode(65 + ((h >>> 11) % 26))}.`;
+}
+function renameAgent(key) {
+  const next = prompt('Name this agent', agentName(key));
+  if (next == null) return;
+  const clean = next.trim().slice(0, 32);
+  if (clean) customNames[key] = clean; else delete customNames[key];
+  store('names', JSON.stringify(customNames));
+  if (state.data) render();
+}
+
+const office = (() => {
+  const canvas = $('office'), wrap = $('office-wrap'), pop = $('office-pop');
+  const ctx = canvas.getContext('2d');
+  const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const W = 960, MAX = 20, LOUNGE_X = 690;
+  const people = new Map(); // agent key -> character
+  const deskOf = new Map(); // agent key -> desk index
+  const seatOwner = new Map(); // lounge seat index -> agent key
+  let H = 332, cols = 4, desks = 8, scale = 1, dpr = 1, visible = true, raf = 0, last = 0;
+  let C = {}, hoverKey = null, popKey = null, layoutKey = '', tags = [];
+
+  const ACT = {
+    work: 'Working', coffee: 'Getting coffee', water: 'At the water cooler', window: 'Looking out the window',
+    plant: 'Watering the plant', stretch: 'Stretching their legs', couch: 'Chilling in the lounge', nap: 'Napping',
+  };
+
+  function readColors() {
+    for (const k of ['floor', 'tile', 'wall', 'sky', 'rug', 'wood', 'wood-2', 'chair', 'couch', 'couch-2', 'metal']) C[k] = cssVar('--office-' + k);
+    for (const k of ['surface', 'ink', 'ink-2', 'accent', 'good', 'border']) C[k] = cssVar('--' + k);
+  }
+  function deskPos(i) {
+    return { x: 75 + (i % cols) * (560 / (cols - 1)), y: 96 + Math.floor(i / cols) * 104 };
+  }
+  function spots() {
+    return {
+      coffee: { x: 752, y: 110 }, water: { x: 872, y: 110 }, plant: { x: 900, y: H - 104 },
+      window: [{ x: 720, y: 62 }, { x: 806, y: 62 }, { x: 930, y: 62 }],
+      seats: [{ x: 752, y: H - 30 }, { x: 792, y: H - 30 }, { x: 832, y: H - 30 }, { x: 726, y: H / 2 + 26 }, { x: 930, y: H / 2 + 26 }],
+    };
+  }
+  function modeOf(a) {
+    if (a.live) return 'work';
+    return a.lastTs && Date.now() - a.lastTs < 45 * 60e3 ? 'break' : 'rest';
+  }
+
+  function makePerson(a) {
+    const h = hashStr(a.key);
+    return {
+      key: a.key, agent: a, x: 0, y: 0, tx: 0, ty: 0, moving: false, pose: 'stand', arrivePose: 'stand',
+      mode: null, act: null, until: 0, stay: 0, face: 1, phase: (h % 628) / 100, seat: -1, holdUntil: 0,
+      small: a.kind === 'subagent',
+      look: { skin: SKIN[h % SKIN.length], hair: HAIR[(h >>> 4) % HAIR.length], shirt: SHIRT[(h >>> 8) % SHIRT.length],
+        pants: PANTS[(h >>> 12) % PANTS.length], long: ((h >>> 16) % 3) === 0 },
+    };
+  }
+
+  function go(p, x, y, pose, stayMs, act) {
+    p.tx = x; p.ty = y; p.arrivePose = pose; p.stay = stayMs; p.act = act; p.moving = true;
+  }
+  function releaseSeat(p) {
+    if (p.seat >= 0 && seatOwner.get(p.seat) === p.key) seatOwner.delete(p.seat);
+    p.seat = -1;
+  }
+  const jitter = (n) => (Math.random() - 0.5) * n;
+
+  function nextBreak(p) {
+    const s = spots(), r = Math.random();
+    if (r < 0.3) go(p, s.coffee.x + jitter(6), s.coffee.y, 'stand', 4000 + Math.random() * 3000, 'coffee');
+    else if (r < 0.55) go(p, s.water.x + jitter(26), s.water.y + jitter(8), 'stand', 5000 + Math.random() * 5000, 'water');
+    else if (r < 0.75) { const w = s.window[Math.floor(Math.random() * s.window.length)]; go(p, w.x + jitter(20), w.y, 'stand', 4000 + Math.random() * 4000, 'window'); }
+    else if (r < 0.85) go(p, s.plant.x - 18, s.plant.y + 8, 'stand', 3000 + Math.random() * 2000, 'plant');
+    else go(p, LOUNGE_X + 20 + Math.random() * 230, 130 + Math.random() * (H - 200), 'stand', 2000 + Math.random() * 2000, 'stretch');
+  }
+
+  function plan(p, instant) {
+    if (p.mode !== 'rest') releaseSeat(p);
+    if (p.mode === 'work') {
+      const d = deskPos(deskOf.get(p.key));
+      go(p, d.x, d.y + 30, 'sitBack', Infinity, 'work');
+    } else if (p.mode === 'rest') {
+      const s = spots();
+      if (p.seat < 0) {
+        const free = s.seats.findIndex((_, i) => !seatOwner.has(i));
+        if (free >= 0) { p.seat = free; seatOwner.set(free, p.key); }
+      }
+      const sleepy = !p.agent.lastTs || Date.now() - p.agent.lastTs > 3 * 3600e3;
+      if (p.seat >= 0) go(p, s.seats[p.seat].x, s.seats[p.seat].y, sleepy ? 'sleep' : 'sitFront', Infinity, sleepy ? 'nap' : 'couch');
+      else go(p, LOUNGE_X + 30 + Math.random() * 210, H / 2 - 20 + Math.random() * 40, 'stand', Infinity, 'couch');
+    } else {
+      nextBreak(p);
+    }
+    if (instant || REDUCED) {
+      p.x = p.tx; p.y = p.ty; p.moving = false; p.pose = p.arrivePose; p.until = performance.now() + p.stay;
+    }
+  }
+
+  function update(d) {
+    readColors();
+    const list = d ? d.agents.slice().sort((a, b) => (b.live - a.live) || ((b.lastTs || 0) - (a.lastTs || 0))).slice(0, MAX) : [];
+    const keys = new Set(list.map((a) => a.key));
+    for (const k of [...people.keys()]) {
+      if (keys.has(k)) continue;
+      releaseSeat(people.get(k));
+      people.delete(k);
+      deskOf.delete(k);
+    }
+    for (const a of list) {
+      if (deskOf.has(a.key)) continue;
+      const used = new Set(deskOf.values());
+      let i = 0;
+      while (used.has(i)) i++;
+      deskOf.set(a.key, i);
+    }
+    cols = list.length > 8 ? 5 : 4;
+    desks = Math.max(cols * 2, Math.ceil((Math.max(-1, ...deskOf.values()) + 1) / cols) * cols);
+    H = 96 + (desks / cols) * 104 + 28;
+    const layoutChanged = layoutKey !== (layoutKey = `${cols}:${H}`);
+    resize();
+    for (const a of list) {
+      let p = people.get(a.key);
+      const fresh = !p;
+      if (fresh) { p = makePerson(a); people.set(a.key, p); }
+      p.agent = a;
+      const m = modeOf(a);
+      if (m !== p.mode) { p.mode = m; plan(p, fresh); }
+      // Desks and lounge seats move when the room is resized; walk to the new spot.
+      else if (layoutChanged && p.mode !== 'break') plan(p, false);
+    }
+    const working = list.filter((a) => a.live).length;
+    const hidden = d ? d.agents.length - list.length : 0;
+    $('office-note').textContent = !list.length ? 'Nobody in the office in this range'
+      : `${list.length} agent${list.length === 1 ? '' : 's'} · ${working} working now${hidden > 0 ? ` · ${hidden} more not shown` : ''} · click someone to see what they’re up to`;
+    if (popKey) showPop(popKey);
+    draw(performance.now() / 1000);
+    kick();
+  }
+
+  function resize() {
+    dpr = window.devicePixelRatio || 1;
+    scale = Math.min(1.2, Math.max(0.72, wrap.clientWidth / W));
+    canvas.style.width = W * scale + 'px';
+    canvas.style.height = H * scale + 'px';
+    canvas.width = Math.round(W * scale * dpr);
+    canvas.height = Math.round(H * scale * dpr);
+  }
+
+  // ---- animation loop ----
+  function kick() {
+    if (REDUCED || raf || !visible || document.hidden || !people.size) return;
+    last = performance.now();
+    raf = requestAnimationFrame(tick);
+  }
+  function tick(ts) {
+    raf = 0;
+    const dt = Math.min(0.05, (ts - last) / 1000);
+    last = ts;
+    for (const p of people.values()) step(p, dt, ts);
+    draw(ts / 1000);
+    kick();
+  }
+  function step(p, dt, now) {
+    if (p.moving) {
+      const dx = p.tx - p.x, dy = p.ty - p.y, dist = Math.hypot(dx, dy);
+      const v = (p.small ? 62 : 52) * dt;
+      if (Math.abs(dx) > 0.5) p.face = dx > 0 ? 1 : -1;
+      if (dist <= v) {
+        p.x = p.tx; p.y = p.ty; p.moving = false; p.pose = p.arrivePose; p.until = now + p.stay;
+      } else {
+        p.x += (dx / dist) * v; p.y += (dy / dist) * v; p.pose = 'walk';
+      }
+    } else if (p.mode === 'break' && now > p.until) {
+      if (p.act === 'coffee') p.holdUntil = now + 25000;
+      nextBreak(p);
+    }
+  }
+
+  // ---- drawing ----
+  function rr(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); }
+  function circle(x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+
+  function drawRoom() {
+    const c = ctx;
+    c.fillStyle = C.floor; c.fillRect(0, 0, W, H);
+    c.fillStyle = C.tile;
+    for (let y = 44; y < H; y += 32) for (let x = ((y / 32) % 2) * 32; x < LOUNGE_X; x += 64) c.fillRect(x, y, 32, 32);
+    c.fillStyle = C.rug; rr(LOUNGE_X, 52, W - LOUNGE_X - 8, H - 60, 14);
+    c.fillStyle = C.wall; c.fillRect(0, 0, W, 44);
+    c.fillStyle = C['wood-2']; c.fillRect(0, 42, W, 3);
+    for (const x of [60, 250, 440, 710, 850]) {
+      c.fillStyle = C.metal; c.fillRect(x - 3, 7, 96, 30);
+      c.fillStyle = C.sky; c.fillRect(x, 10, 90, 24);
+      c.fillStyle = 'rgba(255,255,255,.35)'; c.fillRect(x + 8, 12, 10, 20); c.fillRect(x + 22, 12, 4, 20);
+    }
+  }
+
+  function drawDesk(i, t) {
+    const c = ctx, { x, y } = deskPos(i);
+    const owner = [...deskOf.entries()].find(([, v]) => v === i);
+    const p = owner && people.get(owner[0]);
+    const on = !!p && p.mode === 'work' && !p.moving;
+    // chair
+    c.fillStyle = C.chair; rr(x - 11, y + 4, 22, 20, 5); c.fillRect(x - 2, y + 24, 4, 6);
+    // desk
+    c.fillStyle = C.wood; c.fillRect(x - 46, y - 6, 92, 10);
+    c.fillStyle = C['wood-2']; c.fillRect(x - 46, y + 4, 92, 3); c.fillRect(x - 43, y + 7, 3, 14); c.fillRect(x + 40, y + 7, 3, 14);
+    // monitor
+    c.fillStyle = '#26282b'; rr(x - 18, y - 32, 36, 24, 2); c.fillRect(x - 3, y - 8, 6, 3);
+    c.fillStyle = on ? '#132a44' : '#3a3c40'; c.fillRect(x - 16, y - 30, 32, 20);
+    if (on) {
+      const seed = hashStr(p.key) % 7;
+      for (let k = 0; k < 5; k++) {
+        const w = 6 + ((seed + k * 5 + Math.floor(t * 3)) % 5) * 4;
+        c.fillStyle = k % 2 ? '#6fd1a0' : '#7fb4f0';
+        c.fillRect(x - 14 + (k % 3 === 2 ? 4 : 0), y - 28 + k * 3.6, w, 1.8);
+      }
+    }
+    // mug and papers
+    c.fillStyle = '#f4f1ea'; c.fillRect(x + 26, y - 12, 6, 7);
+    c.fillStyle = 'rgba(255,255,255,.8)'; c.fillRect(x - 38, y - 9, 12, 5);
+  }
+
+  function drawCoffee() {
+    const c = ctx, x = 752, y = 94;
+    c.fillStyle = C.wood; c.fillRect(x - 26, y - 14, 52, 12);
+    c.fillStyle = C['wood-2']; c.fillRect(x - 26, y - 2, 52, 14);
+    c.fillStyle = '#2e3033'; rr(x - 12, y - 44, 24, 30, 3);
+    c.fillStyle = '#e34948'; c.fillRect(x + 5, y - 40, 3, 3);
+    c.fillStyle = '#6fd1a0'; c.fillRect(x - 8, y - 40, 9, 4);
+    c.fillStyle = '#f4f1ea'; c.fillRect(x - 3, y - 22, 6, 7);
+  }
+  function drawWater() {
+    const c = ctx, x = 872, y = 94;
+    c.fillStyle = '#e9ecef'; rr(x - 10, y - 28, 20, 30, 3);
+    c.fillStyle = 'rgba(90,160,230,.75)'; rr(x - 8, y - 50, 16, 23, 5);
+    c.fillStyle = '#9aa3ad'; c.fillRect(x - 3, y - 20, 6, 3);
+  }
+  function drawPlant() {
+    const c = ctx, x = 900, y = H - 104;
+    c.fillStyle = '#b5673d'; c.fillRect(x - 9, y - 12, 18, 14);
+    c.fillStyle = '#2f8f4e'; circle(x - 6, y - 20, 8); circle(x + 6, y - 22, 8); circle(x, y - 30, 8);
+    c.fillStyle = '#3aa35c'; circle(x + 2, y - 26, 5);
+  }
+  function drawCouch() {
+    const c = ctx, y = H - 30;
+    c.fillStyle = C['couch-2']; rr(726, y - 30, 132, 20, 6);
+    c.fillStyle = C.couch; rr(722, y - 14, 140, 16, 5); rr(716, y - 26, 12, 30, 5); rr(856, y - 26, 12, 30, 5);
+    for (const b of [{ x: 726, y: H / 2 + 26 }, { x: 930, y: H / 2 + 26 }]) {
+      c.fillStyle = C['couch-2']; c.beginPath(); c.ellipse(b.x, b.y - 4, 16, 10, 0, 0, Math.PI * 2); c.fill();
+    }
+  }
+
+  function drawPerson(p, t) {
+    const c = ctx, L = p.look, s = p.small ? 0.8 : 1;
+    c.save();
+    c.translate(Math.round(p.x), Math.round(p.y));
+    c.scale(s, s);
+    const walk = p.pose === 'walk' && !REDUCED;
+    const k = walk ? Math.sin(t * 12 + p.phase) : 0;
+    const bob = walk ? Math.abs(k) * 1.4 : 0;
+    c.fillStyle = 'rgba(0,0,0,.16)'; c.beginPath(); c.ellipse(0, 0, 9, 2.6, 0, 0, Math.PI * 2); c.fill();
+    if (p.pose === 'sitBack') {
+      // seen from behind, typing
+      const tap = REDUCED ? 0 : Math.sin(t * 24 + p.phase);
+      c.fillStyle = L.shirt; rr(-7, -21, 14, 13, 3);
+      c.fillRect(-10, -20 - (tap > 0 ? 1.5 : 0), 3, 7); c.fillRect(7, -20 - (tap > 0 ? 0 : 1.5), 3, 7);
+      c.fillStyle = L.hair; circle(0, -26, 6.2);
+      if (L.long) c.fillRect(-6, -26, 12, 7);
+    } else {
+      const sit = p.pose === 'sitFront' || p.pose === 'sleep';
+      c.fillStyle = L.pants;
+      if (sit) { c.fillRect(-6, -9, 12, 5); c.fillRect(-6, -5, 4, 5); c.fillRect(2, -5, 4, 5); }
+      else { c.fillRect(-5, -10 - Math.max(0, k) * 2, 4, 10); c.fillRect(1, -10 - Math.max(0, -k) * 2, 4, 10); }
+      const y0 = sit ? -8 : -10 - bob;
+      c.fillStyle = L.shirt; rr(-7, y0 - 12, 14, 13, 3);
+      c.fillRect(-10, y0 - 11 + k * 1.5, 3, 8); c.fillRect(7, y0 - 11 - k * 1.5, 3, 8);
+      c.fillStyle = L.skin; c.fillRect(-10, y0 - 3 + k * 1.5, 3, 2); c.fillRect(7, y0 - 3 - k * 1.5, 3, 2);
+      const hy = y0 - 18 + (p.pose === 'sleep' ? 2 : 0);
+      c.fillStyle = L.skin; circle(0, hy, 6);
+      c.fillStyle = L.hair; c.beginPath(); c.arc(0, hy - 1, 6.3, Math.PI, 0); c.fill();
+      if (L.long) { c.fillRect(-6.3, hy - 1, 2.4, 8); c.fillRect(3.9, hy - 1, 2.4, 8); }
+      c.fillStyle = '#1b1b1b';
+      const ex = p.face * 1.1;
+      if (p.pose === 'sleep') { c.fillRect(-3.2 + ex, hy + 1, 2.2, 0.9); c.fillRect(1 + ex, hy + 1, 2.2, 0.9); }
+      else { c.fillRect(-2.7 + ex, hy, 1.4, 1.9); c.fillRect(1.3 + ex, hy, 1.4, 1.9); }
+      if (performance.now() < p.holdUntil && !sit) {
+        const cx = p.face > 0 ? 9 : -13;
+        c.fillStyle = '#f4f1ea'; c.fillRect(cx, y0 - 7, 5, 6);
+        c.fillStyle = '#8a5a3c'; c.fillRect(cx + 1, y0 - 6, 3, 1.5);
+      }
+    }
+    c.restore();
+  }
+
+  function drawOverlay(p, t) {
+    const c = ctx, s = p.small ? 0.8 : 1;
+    const top = p.y - (p.pose === 'sitBack' ? 36 : p.pose === 'walk' || p.pose === 'stand' ? 44 : 40) * s;
+    // tokens rising off the screen of anyone working
+    if (p.mode === 'work' && !p.moving && !REDUCED) {
+      const d = deskPos(deskOf.get(p.key));
+      const rate = p.agent.rate ? p.agent.rate.output : 0;
+      const n = 2 + Math.round(Math.min(1, Math.log10(1 + rate) / 4) * 6);
+      for (let i = 0; i < n; i++) {
+        const f = (t * 0.55 + i / n + p.phase) % 1;
+        c.globalAlpha = 1 - f;
+        c.fillStyle = i % 2 ? C.accent : C.good;
+        c.fillRect(d.x + Math.sin(i * 12.9 + p.phase) * 12, d.y - 34 - f * 28, 2.5, 2.5);
+      }
+      c.globalAlpha = 1;
+    }
+    if (performance.now() < p.holdUntil && p.pose !== 'sitBack' && !REDUCED) {
+      c.strokeStyle = 'rgba(160,160,160,.7)'; c.lineWidth = 1;
+      const sx = p.x + (p.face > 0 ? 11 : -11) * s, sy = top + 22 * s;
+      for (let i = 0; i < 2; i++) {
+        c.beginPath(); c.moveTo(sx + i * 3, sy); c.quadraticCurveTo(sx + i * 3 + Math.sin(t * 4 + i) * 2, sy - 4, sx + i * 3, sy - 8); c.stroke();
+      }
+    }
+    if (p.pose === 'sleep') {
+      c.fillStyle = C['ink-2']; c.font = '600 9px system-ui, sans-serif';
+      const f = REDUCED ? 0.4 : (t * 0.5 + p.phase) % 1;
+      c.globalAlpha = 1 - f; c.fillText('z', p.x + 8, top + 6 - f * 12); c.fillText('Z', p.x + 13, top - f * 14);
+      c.globalAlpha = 1;
+    }
+    // name tag
+    const name = agentName(p.key);
+    c.font = `600 ${p.small ? 9 : 10}px system-ui, -apple-system, "Segoe UI", sans-serif`;
+    const w = c.measureText(name).width + (p.mode === 'work' ? 20 : 12);
+    const x0 = Math.round(p.x - w / 2);
+    let y0 = Math.round(top - 16);
+    // Stack tags that would cover one already drawn (people bunch up at the water cooler).
+    for (let tries = 0; tries < 4; tries++) {
+      const hitTag = tags.find((r) => x0 < r.x + r.w && x0 + w > r.x && y0 < r.y + r.h + 1 && y0 + 14 > r.y - 1);
+      if (!hitTag) break;
+      y0 = hitTag.y - 16;
+    }
+    c.fillStyle = C.surface; c.globalAlpha = 0.92; rr(x0, y0, w, 14, 7); c.globalAlpha = 1;
+    c.strokeStyle = p.key === hoverKey || p.key === popKey ? C.accent : C.border; c.lineWidth = p.key === hoverKey || p.key === popKey ? 1.5 : 1;
+    c.beginPath(); c.roundRect(x0 + 0.5, y0 + 0.5, w - 1, 13, 7); c.stroke();
+    if (p.mode === 'work') { c.fillStyle = C.good; circle(x0 + 8, y0 + 7, 3); }
+    c.fillStyle = C.ink; c.textBaseline = 'middle';
+    c.fillText(name, x0 + (p.mode === 'work' ? 14 : 6), y0 + 7.5);
+    c.textBaseline = 'alphabetic';
+    p.tag = { x: x0, y: y0, w, h: 14 };
+    tags.push(p.tag);
+  }
+
+  function draw(t) {
+    if (!C.floor) readColors();
+    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+    drawRoom();
+    const items = [];
+    for (let i = 0; i < desks; i++) items.push({ y: deskPos(i).y, draw: () => drawDesk(i, t) });
+    items.push({ y: 94, draw: drawCoffee }, { y: 94, draw: drawWater }, { y: H - 104, draw: drawPlant }, { y: H - 40, draw: drawCouch });
+    for (const p of people.values()) items.push({ y: p.y + 0.1, draw: () => drawPerson(p, t) });
+    items.sort((a, b) => a.y - b.y);
+    for (const it of items) it.draw();
+    tags = [];
+    // Front-most characters place their tags first; the ones behind stack above them.
+    for (const p of [...people.values()].sort((a, b) => b.y - a.y)) drawOverlay(p, t);
+  }
+
+  // ---- interaction ----
+  function hit(e) {
+    const r = canvas.getBoundingClientRect();
+    const x = (e.clientX - r.left) / scale, y = (e.clientY - r.top) / scale;
+    let best = null;
+    for (const p of people.values()) {
+      const s = p.small ? 0.8 : 1;
+      const inBody = Math.abs(x - p.x) < 12 * s && y > p.y - 46 * s && y < p.y + 4;
+      const inTag = p.tag && x >= p.tag.x && x <= p.tag.x + p.tag.w && y >= p.tag.y && y <= p.tag.y + p.tag.h;
+      if ((inBody || inTag) && (!best || p.y > best.y)) best = p;
+    }
+    return best;
+  }
+  canvas.addEventListener('mousemove', (e) => {
+    const p = hit(e);
+    hoverKey = p ? p.key : null;
+    canvas.style.cursor = p ? 'pointer' : 'default';
+    if (REDUCED) draw(0);
+  });
+  canvas.addEventListener('mouseleave', () => { hoverKey = null; if (REDUCED) draw(0); });
+  canvas.addEventListener('click', (e) => {
+    const p = hit(e);
+    if (p) showPop(p.key); else hidePop();
+    e.stopPropagation();
+  });
+  document.addEventListener('click', (e) => { if (!pop.hidden && !pop.contains(e.target)) hidePop(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hidePop(); });
+
+  function hidePop() { pop.hidden = true; popKey = null; if (REDUCED) draw(0); }
+  function showPop(key) {
+    const p = people.get(key);
+    if (!p) return hidePop();
+    popKey = key;
+    const a = p.agent;
+    let doing = ACT[p.act] || 'Around';
+    if (p.moving) doing = p.mode === 'work' ? 'Heading to their desk' : 'Walking over';
+    if (p.mode === 'work' && !p.moving) doing = `Working · ${compact(a.rate.all)} tokens/min`;
+    const btns = el('div', { class: 'btns' });
+    if (canMessage(a)) btns.append(el('button', { class: 'btn primary', onclick: () => { hidePop(); openChat(a); } }, 'Message'));
+    btns.append(el('button', { class: 'btn', onclick: () => renameAgent(key) }, 'Rename'));
+    pop.replaceChildren(
+      el('div', { class: 'nm' }, el('span', { class: 'dot' + (a.live ? ' live' : '') }), agentName(a), el('span', { class: 'spacer' }),
+        el('button', { class: 'x', 'aria-label': 'Close', onclick: hidePop }, '×')),
+      el('div', { class: 'row' }, doing),
+      el('div', { class: 'row' }, a.label),
+      el('div', { class: 'row muted' }, [a.kind === 'subagent' ? 'Subagent' : 'Session', shortPath(a.project), a.models.map((m) => m.replace(/^claude-/, '')).join(', ')].filter(Boolean).join(' · ')),
+      el('div', { class: 'row' }, `${compact(a.stats.total)} tokens · ${money(a.stats.cost)}` + (a.stats.outputSpeed ? ` · ${Math.round(a.stats.outputSpeed)} tok/s` : '') + ` · last active ${ago(a.lastTs)}`),
+      btns,
+    );
+    pop.hidden = false;
+    const left = p.x * scale + canvas.offsetLeft - wrap.scrollLeft + 16;
+    pop.style.left = Math.max(0, Math.min(left, wrap.clientWidth - pop.offsetWidth)) + 'px';
+    pop.style.top = Math.max(0, (p.y - 60) * scale) + 'px';
+    if (REDUCED) draw(0);
+  }
+
+  new IntersectionObserver((entries) => {
+    visible = entries[0].isIntersecting;
+    kick();
+  }).observe(canvas);
+  document.addEventListener('visibilitychange', kick);
+  let resizeT;
+  window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => { resize(); draw(performance.now() / 1000); }, 100); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readColors(); draw(performance.now() / 1000); });
+
+  return { update };
+})();
+
 // ---------- data ----------
 let loading = false;
 let reloadQueued = false;
@@ -561,6 +1046,7 @@ function render() {
   renderChart(d, top);
   renderModels(d);
   renderTable(d);
+  office.update(d);
 }
 
 function renderEmpty() {
@@ -568,6 +1054,7 @@ function renderEmpty() {
   for (const id of ['tbody', 'legend', 'chart', 'models', 'speeds']) $(id).replaceChildren();
   for (const id of ['burn', 't-total', 't-cost', 't-speed', 't-cache', 't-live']) $(id).textContent = '–';
   for (const id of ['burn-sub', 't-total-sub', 't-cost-sub', 't-cache-sub', 't-live-sub']) $(id).textContent = '';
+  office.update(null);
 }
 
 function renderTiles(d) {
@@ -821,7 +1308,7 @@ function renderTable(d) {
         tr.append(el('td', {}, el('div', { class: 'agent-cell' + (a.kind === 'subagent' ? ' sub' : ''), title: a.label },
           el('span', { class: 'dot' + (a.live ? ' live' : ''), title: a.live ? 'Working now' : 'Idle' }), sw,
           el('div', { class: 'names' }, el('div', { class: 'n' }, a.label),
-            el('div', { class: 'p' }, [shortPath(a.project), a.branch].filter(Boolean).join(' · '))))));
+            el('div', { class: 'p' }, [agentName(a), shortPath(a.project), a.branch].filter(Boolean).join(' · '))))));
       } else if (c.key === 'msg') {
         const td = el('td');
         if (canMessage(a)) td.append(el('button', { class: 'btn', onclick: () => openChat(a) }, 'Message'));
@@ -858,7 +1345,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && drawer.c
 
 async function openChat(a) {
   state.chatAgent = a;
-  $('d-name').textContent = a.label;
+  $('d-name').textContent = `${agentName(a)} · ${a.label}`;
   $('d-proj').textContent = [a.project, a.branch].filter(Boolean).join(' · ');
   $('d-dot').className = 'dot' + (a.live ? ' live' : '');
   // Two processes resuming one session can interleave writes; default to a fork while it's busy.
