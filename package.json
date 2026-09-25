@@ -12,7 +12,9 @@
     "demo": "node server.js --demo",
     "report": "node server.js --report",
     "test": "node --test test/*.test.js",
-    "build:pages": "node scripts/build-pages.js _site"
+    "build:pages": "node scripts/build-pages.js _site",
+    "build:donut": "node donut/build.js _site/donut",
+    "donut": "node donut/hub.js"
   },
   "engines": {
     "node": ">=18"

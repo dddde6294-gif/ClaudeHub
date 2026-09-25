@@ -12,6 +12,8 @@ A live dashboard for your Claude Code agents. It shows how many tokens each sess
 - **Live status:** which agents are working right now; subagents appear under the session that started them
 - **Message a session:** a chat drawer that sends your message to the session and streams back its reply
 
+Also in this repo: **[Donut HUD](donut/README.md)**, a DonutSMP price HUD for diamond pickaxes and diamond orders, published at <https://dddde6294-gif.github.io/ClaudeHub/donut/>.
+
 ## Quick start
 
 You need Node.js 18 or newer. There are no dependencies to install.

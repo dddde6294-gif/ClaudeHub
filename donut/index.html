@@ -1,0 +1,971 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Donut HUD</title>
+<meta name="description" content="The cheapest diamond pickaxe on the DonutSMP auction house, its price history, and the best diamond order price, in a Minecraft-style HUD.">
+<meta name="theme-color" content="#0d0a14">
+<script>if (/[?&]mini(&|=|$)/.test(location.search)) document.documentElement.classList.add('mini');</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap">
+<style>
+:root {
+  color-scheme: dark;
+  --page: #0d0a14;
+  --surface: #151020;
+  --surface-2: #1d1629;
+  --line: #2a2238;
+  --axis: #3a3149;
+  --ink: #f4f1fa;
+  --ink-2: #b9b3c6;
+  --muted: #8a8398;
+  /* Minecraft's item tooltip: near-black purple with a purple frame */
+  --tip-fill: rgba(16, 0, 16, 0.95);
+  --tip-solid: #100010;
+  --tip-top: #5a28e0;
+  --tip-bottom: #2a0f6e;
+  /* Minecraft chat colours: §b aqua, §a green, §7 gray */
+  --aqua: #55ffff;
+  --aqua-shadow: #153f3f;
+  --green: #55ff55;
+  --green-shadow: #153f15;
+  --gray: #aaaaaa;
+  --gray-shadow: #2a2a2a;
+  --series: #22a6b8;
+  --good: #0ca30c;
+  --warning: #fab219;
+  --critical: #d03b3b;
+  --focus: #b8a8ff;
+  --px: 3px;
+  --pixel: "Pixelify Sans", ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--page); color: var(--ink); font: 15px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
+a { color: var(--aqua); text-underline-offset: 2px; }
+code { font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; color: var(--ink); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 20px 16px 56px; }
+
+/* header */
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 22px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; font: 600 24px/1 var(--pixel); color: var(--ink); text-decoration: none; letter-spacing: .02em; }
+.brand svg { width: 30px; height: 30px; flex: none; }
+.server { font: 500 14px/1 var(--pixel); color: var(--muted); letter-spacing: .04em; }
+.grow { flex: 1; }
+.pill { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font-size: 13px; color: var(--ink-2); max-width: 100%; }
+.pill b { font-weight: 600; color: var(--ink); }
+.pill .glyph { font-weight: 700; width: 1em; text-align: center; color: var(--muted); }
+.pill.good .glyph { color: var(--good); }
+.pill.warning .glyph { color: var(--warning); }
+.pill.critical .glyph { color: var(--critical); }
+
+/* Minecraft-style button */
+.mc-btn { font: 500 15px/1 var(--pixel); color: #fff; text-shadow: 2px 2px 0 #3f3f3f; background: #5f5f5f; border: 2px solid #000; box-shadow: inset 2px 2px 0 #9a9a9a, inset -2px -3px 0 #383838; padding: 9px 16px 11px; cursor: pointer; white-space: nowrap; }
+.mc-btn:hover { background: #6d6d7e; border-color: #fff; }
+.mc-btn:active { box-shadow: inset 2px 2px 0 #383838, inset -2px -2px 0 #7a7a7a; }
+.mc-btn.small { font-size: 14px; padding: 6px 12px 8px; }
+
+/* the HUD: an item tooltip with notched corners */
+.hud { position: relative; background: var(--tip-fill); padding: var(--px);
+  clip-path: polygon(var(--px) 0, calc(100% - var(--px)) 0, calc(100% - var(--px)) var(--px), 100% var(--px), 100% calc(100% - var(--px)), calc(100% - var(--px)) calc(100% - var(--px)), calc(100% - var(--px)) 100%, var(--px) 100%, var(--px) calc(100% - var(--px)), 0 calc(100% - var(--px)), 0 var(--px), var(--px) var(--px)); }
+.hud-in { border: var(--px) solid var(--tip-top); border-image: linear-gradient(var(--tip-top), var(--tip-bottom)) 1; padding: 18px 20px 16px; display: grid; gap: 14px; }
+.hud-row { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 16px; align-items: start; }
+.hud-icon svg { width: 48px; height: 48px; display: block; }
+.hud-name { font: 500 20px/1.2 var(--pixel); color: var(--aqua); text-shadow: 2px 2px 0 var(--aqua-shadow); }
+.hud-label { font: 500 12px/1.3 var(--pixel); color: var(--gray); text-transform: uppercase; letter-spacing: .1em; text-shadow: 2px 2px 0 var(--gray-shadow); margin-top: 3px; }
+.hud-figure { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin-top: 8px; }
+.hud-price { font: 600 46px/1 var(--pixel); color: var(--green); text-shadow: 3px 3px 0 var(--green-shadow); }
+.hud-price.none { color: var(--gray); text-shadow: 3px 3px 0 var(--gray-shadow); }
+.hud-unit, .hud-delta { font: 500 17px/1.2 var(--pixel); color: var(--gray); text-shadow: 2px 2px 0 var(--gray-shadow); }
+.hud-meta { font: 500 14px/1.45 var(--pixel); color: var(--gray); text-shadow: 2px 2px 0 var(--gray-shadow); margin-top: 8px; overflow-wrap: anywhere; }
+.hud-meta + .hud-meta { margin-top: 2px; }
+.hud-meta.soft { color: #8e8a98; }
+.hud-sep { height: var(--px); background: linear-gradient(90deg, #2a0f6e, #5a28e0 50%, #2a0f6e); opacity: .7; }
+.hud-foot { font: 500 14px/1.45 var(--pixel); color: var(--gray); text-shadow: 2px 2px 0 var(--gray-shadow); }
+.hud-foot b { font-weight: 500; color: var(--green); text-shadow: 2px 2px 0 var(--green-shadow); }
+.order-form { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.order-form input { flex: 1 1 180px; min-width: 0; font: 500 16px/1 var(--pixel); color: #fff; background: #000; border: 2px solid #a0a0a0; padding: 8px 10px; }
+.order-form input::placeholder { color: #777; }
+.order-form input:focus { border-color: #fff; outline: none; }
+.order-error { font: 500 13px var(--pixel); color: #ff5555; margin-top: 6px; }
+@media (prefers-reduced-motion: no-preference) {
+  .hud-price.changed { animation: glint 1.4s ease-out; }
+  @keyframes glint { 0% { color: #fff; text-shadow: 0 0 14px rgba(85, 255, 85, .8), 3px 3px 0 var(--green-shadow); } 100% { color: var(--green); } }
+}
+
+/* page layout */
+.main { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 20px; align-items: start; }
+.side { display: grid; gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 3px; padding: 16px 18px; min-width: 0; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 18px; margin: 0; }
+.stats div { min-width: 0; }
+.stats dt { font-size: 13px; color: var(--ink-2); }
+.stats dd { margin: 2px 0 0; font-size: 22px; font-weight: 600; line-height: 1.2; }
+.stats dd small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+.card h3 { font: 500 16px/1.3 var(--pixel); margin: 0 0 6px; letter-spacing: .02em; }
+.card p { margin: 0; color: var(--ink-2); font-size: 14px; }
+.card p + p { margin-top: 8px; }
+.setup { margin-bottom: 20px; }
+.setup .flag { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+.setup .flag span { color: var(--critical); font-weight: 700; }
+.setup h2 { font: 500 19px/1.3 var(--pixel); margin: 0 0 8px; }
+.setup ol { margin: 10px 0 12px; padding-left: 22px; color: var(--ink-2); }
+.setup li + li { margin-top: 6px; }
+.setup li b { color: var(--ink); }
+
+.section-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 32px 0 12px; }
+.section-head h2 { font: 500 19px/1.2 var(--pixel); margin: 0; letter-spacing: .02em; }
+.section-head p { margin: 0; font-size: 13px; color: var(--muted); }
+.seg { display: inline-flex; border: 2px solid #000; background: #2b2b2b; }
+.seg button { font: 500 14px/1 var(--pixel); color: #ddd; background: none; border: 0; padding: 7px 12px 8px; cursor: pointer; }
+.seg button + button { border-left: 2px solid #000; }
+.seg button[aria-pressed="true"] { background: #5f5f5f; color: #fff; box-shadow: inset 2px 2px 0 #9a9a9a, inset -2px -2px 0 #383838; }
+.seg button:hover { color: #fff; }
+
+/* chart */
+.chart-card { padding: 12px 14px 10px; }
+.chart-wrap { position: relative; }
+svg.chart { display: block; width: 100%; overflow: visible; touch-action: pan-y; }
+svg.chart text { font: 11px var(--sans); fill: var(--muted); font-variant-numeric: tabular-nums; }
+svg.chart .end-label { font-size: 12px; font-weight: 600; fill: var(--ink); }
+svg.chart .grid { stroke: var(--line); }
+svg.chart .base { stroke: var(--axis); }
+svg.chart .series { stroke: var(--series); fill: none; }
+svg.chart .wash-top { stop-color: var(--series); stop-opacity: .2; }
+svg.chart .wash-bottom { stop-color: var(--series); stop-opacity: 0; }
+svg.chart .mark { fill: var(--series); stroke: var(--surface); }
+svg.chart .lone { fill: var(--series); }
+svg.chart .cross { stroke: var(--ink-2); }
+.chart-empty { display: grid; place-items: center; min-height: 200px; color: var(--muted); font-size: 14px; text-align: center; padding: 20px; }
+.tip { position: absolute; pointer-events: none; background: var(--surface-2); border: 1px solid var(--axis); border-radius: 4px; padding: 7px 10px; font-size: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, .45); white-space: nowrap; z-index: 2; }
+.tip .v { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 600; color: var(--ink); }
+.tip .v i { width: 12px; height: 2px; background: var(--series); border-radius: 1px; }
+.tip .t { color: var(--ink-2); margin-top: 2px; }
+details.table-view { margin-top: 6px; font-size: 13px; }
+details.table-view summary { cursor: pointer; color: var(--ink-2); padding: 4px 0; }
+
+/* tables */
+.pair { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 20px; }
+.pair .section-head { margin-top: 32px; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-weight: 500; font-size: 12px; color: var(--muted); padding: 0 10px 8px; border-bottom: 1px solid var(--axis); white-space: nowrap; }
+td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th:first-child, td:first-child { padding-left: 0; }
+th:last-child, td:last-child { padding-right: 0; }
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.price { font-weight: 600; color: var(--ink); }
+td.who { overflow-wrap: anywhere; width: 100%; }
+td.who .ench { font-size: 13px; color: var(--ink-2); margin-top: 2px; }
+.chip { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .03em; padding: 1px 6px; border-radius: 3px; background: #0f3a3f; color: #9ff4ec; margin-left: 6px; vertical-align: 1px; }
+.empty-row td { color: var(--muted); }
+
+footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
+footer p { margin: 0; max-width: 72ch; }
+
+@media (max-width: 860px) {
+  .main, .pair { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 520px) {
+  .hud-in { padding: 14px 14px 12px; }
+  .hud-row { grid-template-columns: 36px minmax(0, 1fr); gap: 12px; }
+  .hud-icon svg { width: 36px; height: 36px; }
+  .hud-price { font-size: 38px; }
+  .stats dd { font-size: 19px; }
+}
+
+/* ?mini, and the pop-out window: just the HUD */
+html.mini body { background: var(--tip-solid); }
+html.mini .wrap { display: none; }
+html.mini .hud { min-height: 100vh; clip-path: none; }
+html.mini .hud-in { min-height: calc(100vh - 2 * var(--px)); padding: 10px 12px; gap: 8px; align-content: start; }
+html.mini .hud-row { grid-template-columns: 30px minmax(0, 1fr); gap: 10px; }
+html.mini .hud-icon svg { width: 30px; height: 30px; }
+html.mini .hud-name { font-size: 15px; }
+html.mini .hud-label { font-size: 10px; margin-top: 1px; }
+html.mini .hud-figure { margin-top: 3px; }
+html.mini .hud-price { font-size: clamp(24px, 8.5vw, 38px); }
+html.mini .hud-unit, html.mini .hud-delta { font-size: 13px; }
+html.mini .hud-meta { font-size: 12px; margin-top: 3px; }
+html.mini [data-f="pick-meta"], html.mini [data-f="foot"], html.mini [data-f="foot-sep"], html.mini .order-form, html.mini .order-error { display: none; }
+/* ?mini&transparent for OBS: the HUD panel alone over the stream */
+html.transparent body { background: transparent; }
+html.transparent.mini .hud, html.transparent.mini .hud-in { min-height: 0; }
+</style>
+</head>
+<body>
+<noscript><p style="padding:16px">Donut HUD needs JavaScript turned on.</p></noscript>
+
+<template id="hud-template">
+  <section class="hud" aria-label="Donut HUD">
+    <div class="hud-in">
+      <div class="hud-row">
+        <span class="hud-icon" data-icon="pickaxe"></span>
+        <div>
+          <div class="hud-name">Diamond Pickaxe</div>
+          <div class="hud-label">Lowest price on /ah</div>
+          <div class="hud-figure"><span class="hud-price none" data-f="pick-price">—</span><span class="hud-delta" data-f="pick-delta"></span></div>
+          <div class="hud-meta" data-f="pick-meta"></div>
+          <div class="hud-meta soft" data-f="pick-when"></div>
+        </div>
+      </div>
+      <div class="hud-sep"></div>
+      <div class="hud-row">
+        <span class="hud-icon" data-icon="diamond"></span>
+        <div>
+          <div class="hud-name">Diamond</div>
+          <div class="hud-label">Best price in /orders</div>
+          <div class="hud-figure"><span class="hud-price none" data-f="order-price">—</span><span class="hud-unit" data-f="order-unit" hidden>each</span></div>
+          <div class="hud-meta" data-f="order-meta"></div>
+          <form class="order-form" data-order-form autocomplete="off" hidden>
+            <label class="sr-only" for="order-input">Best price per diamond in /orders</label>
+            <input id="order-input" name="order" inputmode="decimal" placeholder="Like 150 or 1.2k">
+            <button class="mc-btn small" type="submit">Save</button>
+            <button class="mc-btn small" type="button" data-order-clear hidden>Clear</button>
+          </form>
+          <div class="order-error" data-f="order-error" hidden></div>
+        </div>
+      </div>
+      <div class="hud-sep" data-f="foot-sep" hidden></div>
+      <div class="hud-foot" data-f="foot" hidden></div>
+    </div>
+  </section>
+</template>
+
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="./"><span data-icon="diamond"></span><span>Donut HUD</span></a>
+    <span class="server">for donutsmp.net</span>
+    <span class="grow"></span>
+    <span class="pill" id="status" role="status"><span class="glyph" aria-hidden="true">…</span><span><b id="status-label">Loading prices</b> <span id="status-detail"></span></span></span>
+    <button class="mc-btn" id="popout" type="button">Pop out HUD</button>
+  </header>
+
+  <section class="card setup" id="setup" hidden></section>
+
+  <div class="main">
+    <div id="hud-slot"></div>
+    <div class="side">
+      <section class="card" aria-label="Price facts">
+        <dl class="stats">
+          <div><dt>All-time low</dt><dd id="stat-low">—<small>&nbsp;</small></dd></div>
+          <div><dt>vs 24 hours ago</dt><dd id="stat-change">—<small>&nbsp;</small></dd></div>
+          <div><dt>Last sale</dt><dd id="stat-sale">—<small>&nbsp;</small></dd></div>
+          <div><dt>Tracking since</dt><dd id="stat-since">—<small>&nbsp;</small></dd></div>
+        </dl>
+      </section>
+      <section class="card">
+        <h3>Keep it on screen</h3>
+        <p><b>Pop out HUD</b> opens a small window that stays on top of Minecraft in Chrome and Edge. Play in windowed mode (F11 leaves fullscreen) so it can show over the game.</p>
+        <p>For OBS, add a Browser Source with this address plus <code>?mini&amp;transparent</code>.</p>
+      </section>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <h2>Price history</h2>
+    <div class="seg" role="group" aria-label="Time range" id="ranges">
+      <button type="button" data-range="24h">24h</button><button type="button" data-range="7d">7d</button><button type="button" data-range="30d">30d</button><button type="button" data-range="all">All</button>
+    </div>
+    <p id="chart-caption">Cheapest diamond pickaxe listed on /ah at each check</p>
+  </div>
+  <section class="card chart-card">
+    <div class="chart-wrap" id="chart-wrap">
+      <svg class="chart" id="chart" role="img" aria-labelledby="chart-title" tabindex="0"><title id="chart-title">Cheapest diamond pickaxe price over time</title></svg>
+      <div class="chart-empty" id="chart-empty" hidden></div>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+    <details class="table-view" id="table-view">
+      <summary>Show as a table</summary>
+      <div class="table-scroll">
+        <table><thead><tr><th scope="col">Checked</th><th scope="col" class="num">Cheapest listing</th></tr></thead><tbody id="points-rows"></tbody></table>
+      </div>
+    </details>
+  </section>
+
+  <div class="pair">
+    <div>
+      <div class="section-head"><h2>Cheapest right now</h2><p id="cheapest-caption"></p></div>
+      <section class="card">
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th scope="col" class="num">Price</th><th scope="col">Seller and enchantments</th><th scope="col" class="num">Ends in</th></tr></thead>
+            <tbody id="cheapest-rows"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+    <div>
+      <div class="section-head"><h2>Recent sales</h2><p>Diamond pickaxes sold on /ah</p></div>
+      <section class="card">
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th scope="col" class="num">Price</th><th scope="col">Seller and enchantments</th><th scope="col" class="num">Sold</th></tr></thead>
+            <tbody id="sales-rows"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <footer>
+    <p id="footer-source">Prices come from DonutSMP’s public API. GitHub checks them about every 5 minutes, sometimes later when GitHub is busy.</p>
+    <p>DonutSMP’s API doesn’t include /orders, so the diamond order price is the one you type in. It’s saved in this browser only.</p>
+    <p>Made by a fan. Not affiliated with DonutSMP.</p>
+  </footer>
+</div>
+
+<script src="core.js"></script>
+<script>
+(function () {
+  'use strict';
+  const C = window.DonutCore;
+  const $ = (sel, root) => (root || document).querySelector(sel);
+  const params = new URLSearchParams(location.search);
+  const MINI = params.has('mini');
+  if (MINI) document.documentElement.classList.add('mini');
+  if (params.has('transparent')) document.documentElement.classList.add('transparent');
+
+  // ---- pixel icons (drawn for this page) -------------------------------------------
+  const PALETTE = { o: '#0a2a2e', l: '#b5fff4', m: '#45d9cf', d: '#1b8f97', w: '#ffffff', h: '#b0834a', k: '#6e4b24' };
+  const ICONS = {
+    pickaxe: [
+      '................', '....oooooo......', '...ollllllo.....', '..ommmmmmmlo....',
+      '...ooooodmmlo...', '........ohomlo..', '.......ohkodmlo.', '......ohkoodmlo.',
+      '.....ohko..odlo.', '....ohko...odlo.', '...ohko....odo..', '..ohko......o...',
+      '.ohko...........', 'ohko............', '.oo.............', '................',
+    ],
+    diamond: [
+      '................', '................', '................', '.....oooooo.....',
+      '....owllmmmo....', '...owllllmmmo...', '..olllllmmmmmo..', '..odmmmmmmmmdo..',
+      '...odmmmmmmdo...', '....odmmmmdo....', '.....odmmdo.....', '......oddo......',
+      '.......oo.......', '................', '................', '................',
+    ],
+  };
+  function iconSvg(name) {
+    let rects = '';
+    ICONS[name].forEach((row, y) => {
+      for (let x = 0; x < row.length; ) {
+        let n = 1;
+        while (row[x + n] === row[x]) n++;
+        if (PALETTE[row[x]]) rects += `<rect x="${x}" y="${y}" width="${n}" height="1" fill="${PALETTE[row[x]]}"/>`;
+        x += n;
+      }
+    });
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">${rects}</svg>`;
+  }
+  function paintIcons(root) {
+    root.querySelectorAll('[data-icon]').forEach((el) => { el.innerHTML = iconSvg(el.dataset.icon); });
+  }
+  const favicon = document.createElement('link');
+  favicon.rel = 'icon';
+  favicon.href = 'data:image/svg+xml,' + encodeURIComponent(iconSvg('diamond'));
+  document.head.appendChild(favicon);
+
+  // ---- state -----------------------------------------------------------------------
+  const store = {
+    get(k, fallback) {
+      try { const v = localStorage.getItem('donuthud.' + k); return v == null ? fallback : JSON.parse(v); } catch { return fallback; }
+    },
+    set(k, v) {
+      try { if (v == null) localStorage.removeItem('donuthud.' + k); else localStorage.setItem('donuthud.' + k, JSON.stringify(v)); } catch {}
+    },
+  };
+  const RANGES = { '24h': 864e5, '7d': 7 * 864e5, '30d': 30 * 864e5, all: Infinity };
+  const state = {
+    data: null,
+    history: null,
+    loadError: null,
+    range: RANGES[store.get('range')] ? store.get('range') : '24h',
+    order: validOrder(store.get('order')),
+    shownPrice: null,
+  };
+  const huds = new Set();
+
+  function validOrder(o) {
+    return o && o.price > 0 && Number.isFinite(o.t) ? o : null;
+  }
+
+  // ---- the HUD (the page's own copy, ?mini, and the pop-out window share this) -------
+  function makeHud(doc) {
+    const node = doc.importNode($('#hud-template').content, true).firstElementChild;
+    paintIcons(node);
+    return node;
+  }
+
+  function setText(root, key, text) {
+    const el = root.querySelector(`[data-f="${key}"]`);
+    if (el) el.textContent = text;
+    return el;
+  }
+  function show(root, key, visible) {
+    const el = root.querySelector(`[data-f="${key}"]`);
+    if (el) el.hidden = !visible;
+  }
+
+  function pickaxeView() {
+    const d = state.data;
+    const p = d && d.pickaxe;
+    const now = Date.now();
+    if (!p) {
+      let meta = 'Waiting for the first price check';
+      if (state.loadError) meta = 'Price data isn’t available yet';
+      else if (d && d.status === 'no_key') meta = 'Add your DonutSMP API key to start';
+      else if (d && d.status === 'bad_key') meta = 'DonutSMP didn’t accept the API key';
+      return { price: null, meta, when: '' };
+    }
+    const low = p.lowest;
+    if (!low) return { price: null, meta: 'None listed right now', when: `Checked ${C.timeAgo(now - p.at)}` };
+    const parts = [low.seller || 'Unknown seller', low.enchants && low.enchants.length ? C.enchantList(low.enchants) : 'No enchantments'];
+    let when = `Checked ${C.timeAgo(now - p.at)}`;
+    if (low.endsAt) when += low.endsAt > now ? ` · ends in ${C.formatDuration(low.endsAt - now)}` : ' · listing has ended';
+    let delta = '';
+    if (d.dayAgo && d.dayAgo.price > 0) {
+      const pct = (low.price - d.dayAgo.price) / d.dayAgo.price * 100;
+      delta = Math.abs(pct) < 0.05 ? '= same as 24h ago' : `${pct > 0 ? '▲' : '▼'} ${Math.abs(pct).toFixed(Math.abs(pct) < 10 ? 1 : 0)}% vs 24h`;
+    }
+    return { price: low.price, meta: parts.join(' · '), when, delta };
+  }
+
+  function fillHud(root) {
+    const now = Date.now();
+    const pv = pickaxeView();
+    const priceEl = setText(root, 'pick-price', pv.price == null ? '—' : C.formatMoney(pv.price));
+    priceEl.classList.toggle('none', pv.price == null);
+    priceEl.title = pv.price == null ? '' : C.formatExact(pv.price);
+    setText(root, 'pick-delta', pv.delta || '');
+    setText(root, 'pick-meta', pv.meta);
+    setText(root, 'pick-when', pv.when);
+
+    const o = state.order;
+    const orderEl = setText(root, 'order-price', o ? C.formatMoney(o.price) : '—');
+    orderEl.classList.toggle('none', !o);
+    orderEl.title = o ? C.formatExact(o.price) + ' each' : '';
+    show(root, 'order-unit', Boolean(o));
+    let orderMeta = MINI || root.ownerDocument !== document ? 'Set it on the Donut HUD page' : 'Look up /orders diamond in game and type the top price';
+    if (o) orderMeta = `You set this ${C.timeAgo(now - o.t)}` + (now - o.t > 3 * 36e5 ? ' · check /orders again' : '');
+    setText(root, 'order-meta', orderMeta);
+    const form = root.querySelector('[data-order-form]');
+    if (form) {
+      form.hidden = MINI || root.ownerDocument !== document;
+      form.querySelector('[data-order-clear]').hidden = !o;
+    }
+
+    const lines = [];
+    if (pv.price != null) lines.push(`1 pickaxe = 3 diamonds, so /ah pays about <b>${C.formatMoney(pv.price / 3)}</b> per diamond`);
+    if (pv.price != null && o) lines[0] += ` vs <b>${C.formatMoney(o.price)}</b> in /orders`;
+    const foot = root.querySelector('[data-f="foot"]');
+    // Only numbers formatted above go into this markup, never text from the API.
+    foot.innerHTML = lines.join('');
+    foot.hidden = !lines.length;
+    show(root, 'foot-sep', lines.length > 0);
+  }
+
+  function flashIfChanged() {
+    const pv = pickaxeView();
+    if (state.shownPrice != null && pv.price != null && pv.price !== state.shownPrice) {
+      for (const hud of huds) {
+        const el = hud.querySelector('[data-f="pick-price"]');
+        el.classList.remove('changed');
+        void el.offsetWidth;
+        el.classList.add('changed');
+      }
+    }
+    if (pv.price != null) state.shownPrice = pv.price;
+  }
+
+  function wireOrderForm(hud) {
+    const form = hud.querySelector('[data-order-form]');
+    const input = form.querySelector('input');
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const price = C.parseMoney(input.value);
+      const err = hud.querySelector('[data-f="order-error"]');
+      if (!(price > 0)) {
+        err.textContent = 'Type a price per diamond, like 150 or 1.2k.';
+        err.hidden = false;
+        input.focus();
+        return;
+      }
+      err.hidden = true;
+      state.order = { price, t: Date.now() };
+      store.set('order', state.order);
+      input.value = '';
+      renderHuds();
+    });
+    form.querySelector('[data-order-clear]').addEventListener('click', () => {
+      state.order = null;
+      store.set('order', null);
+      renderHuds();
+      input.focus();
+    });
+  }
+
+  function renderHuds() {
+    for (const hud of huds) fillHud(hud);
+  }
+
+  // ---- status, setup and facts -----------------------------------------------------
+  function statusInfo() {
+    const d = state.data;
+    const now = Date.now();
+    if (!d) {
+      if (state.loadError === 'missing') return { kind: 'critical', glyph: '×', label: 'No price data published yet' };
+      if (state.loadError) return { kind: 'warning', glyph: '!', label: 'Can’t load prices', detail: 'retrying' };
+      return { kind: '', glyph: '…', label: 'Loading prices' };
+    }
+    if (d.status === 'no_key') return { kind: 'critical', glyph: '×', label: 'Needs your API key' };
+    if (d.status === 'bad_key') return { kind: 'critical', glyph: '×', label: 'API key not accepted' };
+    if (d.status === 'starting') return { kind: '', glyph: '…', label: 'Checking prices' };
+    const age = now - (d.lastOkAt || 0);
+    if (d.status !== 'ok') return { kind: 'warning', glyph: '!', label: 'DonutSMP check failed', detail: d.lastOkAt ? `last good ${C.timeAgo(age)}` : '' };
+    const staleAfter = d.source === 'hub' ? d.every * 3000 : 40 * 60e3;
+    if (age > staleAfter) return { kind: 'warning', glyph: '!', label: `Last check ${C.timeAgo(age)}`, detail: d.source === 'hub' ? '' : 'GitHub is running late' };
+    return { kind: 'good', glyph: '✓', label: d.source === 'hub' ? 'Live' : 'Up to date', detail: `checked ${C.timeAgo(age)}` };
+  }
+
+  function renderStatus() {
+    const s = statusInfo();
+    const pill = $('#status');
+    pill.className = 'pill ' + s.kind;
+    $('.glyph', pill).textContent = s.glyph;
+    $('#status-label').textContent = s.label;
+    $('#status-detail').textContent = s.detail ? '· ' + s.detail : '';
+    pill.title = state.data && state.data.message ? state.data.message : '';
+  }
+
+  // Links into the GitHub repository this page is published from, when we can tell.
+  function repoUrl() {
+    const m = location.hostname.match(/^([a-z0-9-]+)\.github\.io$/i);
+    if (!m) return null;
+    const first = location.pathname.split('/')[1];
+    return `https://github.com/${m[1]}/${first && first !== 'donut' ? first : m[1] + '.github.io'}`;
+  }
+
+  function el(tag, attrs, ...kids) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (k === 'text') node.textContent = v;
+      else node.setAttribute(k, v);
+    }
+    for (const kid of kids) node.append(kid);
+    return node;
+  }
+
+  function renderSetup() {
+    const box = $('#setup');
+    const d = state.data;
+    const status = d ? d.status : state.loadError === 'missing' ? 'missing' : null;
+    if (!['no_key', 'bad_key', 'missing'].includes(status)) { box.hidden = true; return; }
+    const repo = repoUrl();
+    const secrets = repo ? el('a', { href: `${repo}/settings/secrets/actions/new`, target: '_blank', rel: 'noopener', text: 'new repository secret' }) : 'new repository secret (Settings → Secrets and variables → Actions)';
+    const actions = repo ? el('a', { href: `${repo}/actions/workflows/pages.yml`, target: '_blank', rel: 'noopener', text: 'Actions' }) : 'Actions';
+    box.replaceChildren(el('div', { class: 'flag' }, el('span', { 'aria-hidden': 'true', text: '×' }), 'Setup needed'));
+    if (status === 'missing') {
+      box.append(el('h2', { text: 'No prices published yet' }),
+        el('p', { text: 'This page fills in after the GitHub Pages workflow runs. If you just set it up, give it a few minutes.' }));
+    } else if (status === 'bad_key') {
+      box.append(el('h2', { text: 'DonutSMP didn’t accept the API key' }),
+        el('ol', {},
+          el('li', {}, 'In DonutSMP, type ', el('code', { text: '/api' }), ' to make a new key.'),
+          el('li', {}, 'Replace the ', el('b', { text: 'DONUTSMP_API_KEY' }), ' secret on GitHub with it (Settings → Secrets and variables → Actions).'),
+          el('li', {}, 'Prices update within about 5 minutes, or run the workflow now from ', actions, '.')));
+    } else {
+      box.append(el('h2', { text: 'Add your DonutSMP API key to start tracking' }),
+        el('ol', {},
+          el('li', {}, 'In DonutSMP, type ', el('code', { text: '/api' }), ' in chat and copy the key it gives you.'),
+          el('li', {}, 'On GitHub, add a ', secrets, ' named ', el('b', { text: 'DONUTSMP_API_KEY' }), ' and paste the key as its value.'),
+          el('li', {}, 'Prices show up within about 5 minutes. To check right away, open ', actions, ' and click ', el('b', { text: 'Run workflow' }), '.')),
+        el('p', { text: 'The key stays in GitHub’s encrypted secrets. This page never sees it.' }));
+    }
+    box.hidden = false;
+  }
+
+  function setStat(id, value, sub, title) {
+    const dd = $('#' + id);
+    dd.replaceChildren(value, el('small', { text: sub || ' ' }));
+    dd.title = title || '';
+  }
+
+  function fmtDate(t, withTime) {
+    const opts = withTime ? { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' } : { month: 'short', day: 'numeric' };
+    return new Date(t).toLocaleString([], opts);
+  }
+
+  function renderStats() {
+    const d = state.data || {};
+    const now = Date.now();
+    const low = d.allTimeLow;
+    setStat('stat-low', low ? C.formatMoney(low.price) : '—', low ? fmtDate(low.t, true) : '', low ? C.formatExact(low.price) : '');
+    const cur = d.pickaxe && d.pickaxe.lowest;
+    if (cur && d.dayAgo && d.dayAgo.price > 0) {
+      const pct = (cur.price - d.dayAgo.price) / d.dayAgo.price * 100;
+      setStat('stat-change', Math.abs(pct) < 0.05 ? 'No change' : `${pct > 0 ? '▲' : '▼'} ${Math.abs(pct).toFixed(1)}%`, `was ${C.formatMoney(d.dayAgo.price)}`);
+    } else {
+      setStat('stat-change', '—', 'after a day of checks');
+    }
+    const sale = d.recentSales && d.recentSales[0];
+    setStat('stat-sale', sale ? C.formatMoney(sale.price) : '—', sale ? `${C.timeAgo(now - sale.t)}${sale.seller ? ' · ' + sale.seller : ''}` : 'none seen yet', sale ? C.formatExact(sale.price) : '');
+    const points = state.history && state.history.points ? state.history.points.length : 0;
+    setStat('stat-since', d.trackingSince ? fmtDate(d.trackingSince) : '—', d.trackingSince ? `${points ? points.toLocaleString() + ' checks' : ''}` : '');
+  }
+
+  // ---- tables ----------------------------------------------------------------------
+  function emptyRow(cols, text) {
+    return el('tr', { class: 'empty-row' }, el('td', { colspan: String(cols), text }));
+  }
+
+  function sellerCell(l) {
+    let ench = l.enchants && l.enchants.length ? C.enchantList(l.enchants) : 'No enchantments';
+    if (l.name) ench += ` · named “${l.name}”`;
+    return el('td', { class: 'who' }, el('span', { text: l.seller || 'Unknown seller' }), el('div', { class: 'ench', text: ench }));
+  }
+
+  function renderListings() {
+    const body = $('#cheapest-rows');
+    const p = state.data && state.data.pickaxe;
+    const rows = (p && p.cheapest) || [];
+    const now = Date.now();
+    $('#cheapest-caption').textContent = p ? `Checked ${C.timeAgo(now - p.at)}` : '';
+    body.replaceChildren(...rows.map((l, i) => {
+      const price = el('td', { class: 'num price', title: C.formatExact(l.price), text: C.formatMoney(l.price) });
+      const who = sellerCell(l);
+      if (i === 0) who.firstChild.after(el('span', { class: 'chip', text: 'Lowest' }));
+      const ends = el('td', { class: 'num', text: l.endsAt ? (l.endsAt > now ? C.formatDuration(l.endsAt - now) : 'Ended') : '—' });
+      return el('tr', {}, price, who, ends);
+    }));
+    if (!rows.length) body.append(emptyRow(3, p ? 'No diamond pickaxes are listed right now.' : 'Listings appear after the first price check.'));
+  }
+
+  function renderSales() {
+    const body = $('#sales-rows');
+    const sales = (state.data && state.data.recentSales) || [];
+    const now = Date.now();
+    body.replaceChildren(...sales.slice(0, 8).map((s) => el('tr', {},
+      el('td', { class: 'num price', title: C.formatExact(s.price), text: C.formatMoney(s.price) }),
+      sellerCell(s),
+      el('td', { class: 'num', title: new Date(s.t).toLocaleString(), text: C.timeAgo(now - s.t) }))));
+    if (!sales.length) body.append(emptyRow(3, 'No sales seen yet. DonutSMP shares the last 1,000 auction sales.'));
+  }
+
+  // ---- chart -----------------------------------------------------------------------
+  const SVG = 'http://www.w3.org/2000/svg';
+  const HOUR = 36e5, DAY = 864e5;
+  const TIME_STEPS = [15 * 6e4, 30 * 6e4, HOUR, 2 * HOUR, 3 * HOUR, 6 * HOUR, 12 * HOUR, DAY, 2 * DAY, 7 * DAY, 14 * DAY, 30 * DAY, 61 * DAY, 91 * DAY, 182 * DAY, 365 * DAY];
+  let chartView = null;
+
+  function sv(tag, attrs, text) {
+    const node = document.createElementNS(SVG, tag);
+    for (const [k, v] of Object.entries(attrs || {})) node.setAttribute(k, v);
+    if (text != null) node.textContent = text;
+    return node;
+  }
+
+  function niceTicks(lo, hi, count) {
+    if (hi - lo < 1e-9) { const pad = Math.abs(hi) * 0.1 || 1; lo -= pad; hi += pad; }
+    const raw = (hi - lo) / count;
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw * 0.999);
+    const a = Math.max(0, Math.floor(lo / step) * step), b = Math.ceil(hi / step) * step;
+    const ticks = [];
+    for (let v = a; v <= b + step * 1e-6; v += step) ticks.push(Number(v.toPrecision(12)));
+    return { lo: a, hi: b, ticks };
+  }
+
+  function timeTicks(t0, t1, max) {
+    const step = TIME_STEPS.find((s) => (t1 - t0) / s <= max) || TIME_STEPS[TIME_STEPS.length - 1];
+    const d = new Date(t0);
+    d.setHours(0, 0, 0, 0);
+    const out = [];
+    for (let guard = 0; guard < 2000 && d.getTime() <= t1; guard++) {
+      if (d.getTime() >= t0) out.push({ t: d.getTime(), day: step >= DAY || (d.getHours() === 0 && d.getMinutes() === 0) });
+      if (step < DAY) d.setTime(d.getTime() + step);
+      else d.setDate(d.getDate() + Math.round(step / DAY));
+    }
+    return out;
+  }
+
+  function tickLabel(tick) {
+    return tick.day ? new Date(tick.t).toLocaleDateString([], { month: 'short', day: 'numeric' })
+      : new Date(tick.t).toLocaleTimeString([], new Date(tick.t).getMinutes() ? { hour: 'numeric', minute: '2-digit' } : { hour: 'numeric' });
+  }
+
+  function cadence() {
+    const d = state.data;
+    return d && d.source === 'hub' ? `every ${d.every} seconds` : 'about every 5 minutes';
+  }
+
+  function pointsInRange() {
+    const all = (state.history && state.history.points) || [];
+    const since = Date.now() - RANGES[state.range];
+    return all.filter((p) => p[0] >= since);
+  }
+
+  function renderChart() {
+    if (MINI) return;
+    const svg = $('#chart');
+    const wrap = $('#chart-wrap');
+    const empty = $('#chart-empty');
+    const pts = pointsInRange();
+    const priced = pts.filter((p) => p[1] != null);
+    hideTip();
+    svg.querySelectorAll(':scope > :not(title)').forEach((n) => n.remove());
+    renderPointsTable(pts);
+    if (!priced.length) {
+      svg.style.display = 'none';
+      empty.hidden = false;
+      const any = state.history && state.history.points && state.history.points.some((p) => p[1] != null);
+      if (!state.history) empty.textContent = state.loadError ? 'Price history isn’t available yet.' : 'Loading price history…';
+      else empty.textContent = any ? 'No prices in this time range. Try a longer one.' : `The chart fills in as prices are checked, ${cadence()}.`;
+      chartView = null;
+      return;
+    }
+    svg.style.display = '';
+    empty.hidden = true;
+
+    const W = Math.max(280, Math.round(wrap.clientWidth));
+    const H = W < 560 ? 220 : 280;
+    const pad = { l: 52, r: 58, t: 14, b: 28 };
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('height', H);
+    const t0 = pts[0][0];
+    const t1 = Math.max(pts[pts.length - 1][0], t0 + 6e4);
+    const vals = priced.map((p) => p[1]);
+    const yt = niceTicks(Math.min(...vals), Math.max(...vals), H < 250 ? 3 : 4);
+    const x = (t) => pad.l + (t - t0) / (t1 - t0) * (W - pad.l - pad.r);
+    const y = (v) => pad.t + (1 - (v - yt.lo) / (yt.hi - yt.lo)) * (H - pad.t - pad.b);
+    const bottom = H - pad.b;
+
+    const defs = sv('defs');
+    const grad = sv('linearGradient', { id: 'wash', x1: 0, y1: 0, x2: 0, y2: 1 });
+    grad.append(sv('stop', { offset: 0, class: 'wash-top' }), sv('stop', { offset: 1, class: 'wash-bottom' }));
+    defs.append(grad);
+    svg.append(defs);
+
+    for (const v of yt.ticks) {
+      svg.append(sv('line', { class: v === yt.lo ? 'base' : 'grid', x1: pad.l, x2: W - pad.r, y1: y(v), y2: y(v), 'stroke-width': 1, 'shape-rendering': 'crispEdges' }));
+      svg.append(sv('text', { x: pad.l - 8, y: y(v) + 4, 'text-anchor': 'end' }, C.formatMoney(v)));
+    }
+    const ticks = timeTicks(t0, t1, Math.max(2, Math.floor((W - pad.l - pad.r) / 84)));
+    for (const tick of ticks) svg.append(sv('text', { x: x(tick.t), y: H - 8, 'text-anchor': 'middle' }, tickLabel(tick)));
+
+    // Gaps (checks that found nothing listed) break the line.
+    const segments = [];
+    let seg = [];
+    for (const p of pts) {
+      if (p[1] == null) { if (seg.length) segments.push(seg); seg = []; } else seg.push(p);
+    }
+    if (seg.length) segments.push(seg);
+    for (const s of segments) {
+      if (s.length === 1) {
+        svg.append(sv('circle', { class: 'lone', cx: x(s[0][0]), cy: y(s[0][1]), r: 2.5 }));
+        continue;
+      }
+      const line = s.map((p, i) => `${i ? 'L' : 'M'}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join('');
+      svg.append(sv('path', { d: `${line}L${x(s[s.length - 1][0]).toFixed(1)},${bottom}L${x(s[0][0]).toFixed(1)},${bottom}Z`, fill: 'url(#wash)' }));
+      svg.append(sv('path', { class: 'series', d: line, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+    }
+    const last = priced[priced.length - 1];
+    svg.append(sv('circle', { class: 'mark', cx: x(last[0]), cy: y(last[1]), r: 4, 'stroke-width': 2 }));
+    svg.append(sv('text', { class: 'end-label', x: x(last[0]) + 9, y: y(last[1]) + 4 }, C.formatMoney(last[1])));
+
+    const cross = sv('line', { class: 'cross', y1: pad.t, y2: bottom, 'stroke-width': 1, visibility: 'hidden', 'shape-rendering': 'crispEdges' });
+    const dot = sv('circle', { class: 'mark', r: 4, 'stroke-width': 2, visibility: 'hidden' });
+    svg.append(cross, dot);
+    chartView = { pts, t0, t1, x, y, W, H, pad, cross, dot, index: null };
+  }
+
+  function nearestIndex(t) {
+    const pts = chartView.pts;
+    let lo = 0, hi = pts.length - 1;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (pts[mid][0] < t) lo = mid; else hi = mid;
+    }
+    return Math.abs(pts[lo][0] - t) <= Math.abs(pts[hi][0] - t) ? lo : hi;
+  }
+
+  function showPoint(i) {
+    if (!chartView) return;
+    const v = chartView;
+    i = Math.max(0, Math.min(v.pts.length - 1, i));
+    v.index = i;
+    const [t, price] = v.pts[i];
+    const px = v.x(t);
+    v.cross.setAttribute('x1', px);
+    v.cross.setAttribute('x2', px);
+    v.cross.setAttribute('visibility', 'visible');
+    if (price != null) {
+      v.dot.setAttribute('cx', px);
+      v.dot.setAttribute('cy', v.y(price));
+      v.dot.setAttribute('visibility', 'visible');
+    } else v.dot.setAttribute('visibility', 'hidden');
+    const tip = $('#tip');
+    tip.replaceChildren(
+      el('div', { class: 'v' }, el('i'), price == null ? 'None listed' : C.formatMoney(price)),
+      el('div', { class: 't', text: new Date(t).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) }));
+    if (price != null) tip.firstChild.title = C.formatExact(price);
+    tip.hidden = false;
+    const scale = $('#chart').getBoundingClientRect().width / v.W;
+    const left = px * scale;
+    const w = tip.offsetWidth;
+    tip.style.left = Math.max(0, Math.min(left + 12 + w > $('#chart-wrap').clientWidth ? left - 12 - w : left + 12, $('#chart-wrap').clientWidth - w)) + 'px';
+    tip.style.top = Math.max(0, (price != null ? v.y(price) : v.pad.t) * scale - 48) + 'px';
+  }
+
+  function hideTip() {
+    $('#tip').hidden = true;
+    if (chartView) {
+      chartView.cross.setAttribute('visibility', 'hidden');
+      chartView.dot.setAttribute('visibility', 'hidden');
+      chartView.index = null;
+    }
+  }
+
+  function wireChart() {
+    const svg = $('#chart');
+    const track = (e) => {
+      if (!chartView) return;
+      const v = chartView;
+      const r = svg.getBoundingClientRect();
+      const vx = (e.clientX - r.left) / r.width * v.W;
+      showPoint(nearestIndex(v.t0 + (vx - v.pad.l) / (v.W - v.pad.l - v.pad.r) * (v.t1 - v.t0)));
+    };
+    svg.addEventListener('pointermove', track);
+    svg.addEventListener('pointerdown', track);
+    svg.addEventListener('pointerleave', hideTip);
+    svg.addEventListener('blur', hideTip);
+    svg.addEventListener('focus', () => chartView && showPoint(chartView.pts.length - 1));
+    svg.addEventListener('keydown', (e) => {
+      if (!chartView) return;
+      const i = chartView.index == null ? chartView.pts.length - 1 : chartView.index;
+      const moves = { ArrowLeft: i - 1, ArrowRight: i + 1, Home: 0, End: chartView.pts.length - 1 };
+      if (e.key in moves) { e.preventDefault(); showPoint(moves[e.key]); } else if (e.key === 'Escape') hideTip();
+    });
+  }
+
+  function renderPointsTable(pts) {
+    const rows = pts.slice(-200).reverse();
+    $('#points-rows').replaceChildren(...rows.map((p) => el('tr', {},
+      el('td', { text: new Date(p[0]).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) }),
+      el('td', { class: 'num', text: p[1] == null ? 'None listed' : C.formatExact(p[1]) }))));
+    if (!rows.length) $('#points-rows').append(emptyRow(2, 'No checks in this time range yet.'));
+    else if (pts.length > rows.length) $('#points-rows').append(emptyRow(2, `Showing the latest ${rows.length} of ${pts.length.toLocaleString()} checks.`));
+  }
+
+  function renderRanges() {
+    document.querySelectorAll('#ranges button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.range === state.range)));
+  }
+
+  // ---- data ------------------------------------------------------------------------
+  function renderAll() {
+    renderHuds();
+    if (MINI) return;
+    renderStatus();
+    renderSetup();
+    renderStats();
+    renderListings();
+    renderSales();
+    if (state.data && state.data.source === 'hub') {
+      $('#footer-source').textContent = `Prices come from DonutSMP’s public API, checked every ${state.data.every} seconds by live mode on this computer.`;
+    }
+  }
+
+  async function loadHistory() {
+    try {
+      const res = await fetch('history.json?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) return;
+      state.history = await res.json();
+      renderChart();
+      renderStats();
+    } catch {}
+  }
+
+  async function refresh() {
+    try {
+      const res = await fetch('data.json?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) throw new Error(res.status === 404 ? 'missing' : 'http');
+      const d = await res.json();
+      const fresh = !state.data || d.generatedAt !== state.data.generatedAt;
+      state.data = d;
+      state.loadError = null;
+      if (fresh && !MINI) loadHistory();
+    } catch (e) {
+      state.loadError = e.message === 'missing' ? 'missing' : 'offline';
+    }
+    renderAll();
+    flashIfChanged();
+  }
+
+  function schedule() {
+    const every = state.data && state.data.every > 0 ? state.data.every : 300;
+    setTimeout(async () => { await refresh(); schedule(); }, Math.min(60, Math.max(5, every / 2)) * 1000);
+  }
+
+  // ---- pop-out ---------------------------------------------------------------------
+  async function popOut() {
+    if (window.documentPictureInPicture) {
+      try {
+        const pip = await window.documentPictureInPicture.requestWindow({ width: 380, height: 250 });
+        pip.document.documentElement.classList.add('mini');
+        pip.document.title = 'Donut HUD';
+        for (const node of document.querySelectorAll('link[rel="stylesheet"], style')) pip.document.head.append(node.cloneNode(true));
+        const hud = makeHud(pip.document);
+        pip.document.body.append(hud);
+        huds.add(hud);
+        fillHud(hud);
+        pip.addEventListener('pagehide', () => huds.delete(hud));
+        return;
+      } catch {}
+    }
+    const url = new URL(location.href);
+    url.search = '?mini';
+    url.hash = '';
+    if (!window.open(url.href, 'donut-hud', 'popup,width=400,height=270')) location.href = url.href;
+  }
+
+  // ---- start -----------------------------------------------------------------------
+  paintIcons(document);
+  const hud = makeHud(document);
+  if (MINI) document.body.prepend(hud);
+  else {
+    $('#hud-slot').append(hud);
+    wireOrderForm(hud);
+    wireChart();
+    renderRanges();
+    $('#ranges').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-range]');
+      if (!b) return;
+      state.range = b.dataset.range;
+      store.set('range', state.range);
+      renderRanges();
+      renderChart();
+    });
+    $('#popout').addEventListener('click', popOut);
+    let width = 0;
+    new ResizeObserver(() => {
+      const w = $('#chart-wrap').clientWidth;
+      if (w !== width) { width = w; renderChart(); }
+    }).observe($('#chart-wrap'));
+  }
+  huds.add(hud);
+
+  // Another tab or the ?mini window changed the order price.
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'donuthud.order') { state.order = validOrder(store.get('order')); renderHuds(); }
+  });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+  setInterval(() => { renderAll(); }, 20000);
+  renderAll();
+  refresh().then(schedule);
+})();
+</script>
+</body>
+</html>
