@@ -63,6 +63,159 @@
   T.ash = { color: '#4a4040', pri: 2, draw(P, r) { base(P, '#4a4040', r, [['#3e3434', 16], ['#5a4e4a', 10], ['#8a3a20', 2]]); } };
   T.obsidian = { color: '#1e1824', pri: 5, draw(P, r) { base(P, '#1e1824', r, [['#2a2232', 12]]); P.line(r.int(0, 15), 0, r.int(0, 15), 15, '#3a2a48'); if (r.chance(0.25)) { const x = r.int(1, 14); P.rect(x, r.int(1, 14), 1, 1, '#ff6020'); } } };
 
+  // ---- world tiles (zones) --------------------------------------------------------
+  // helper: brick rows. bh = brick height, bw = brick width
+  function bricks(P, r, mortar, cols, bh, bw, tx, ty) {
+    P.rect(0, 0, 16, 16, mortar);
+    for (let y = 0, row = 0; y < 16; y += bh, row++) {
+      const o = ((row + (ty || 0) * Math.ceil(16 / bh)) % 2) ? bw / 2 : 0;
+      for (let x = -o; x < 16; x += bw) {
+        const c = r.pick(cols);
+        P.rect(x + 1, y + 1, bw - 1, bh - 1, c);
+        P.rect(x + 1, y + 1, bw - 1, 1, U.shade(c, 0.14));
+      }
+    }
+  }
+  T.canopy = {
+    color: '#1d3a21', solid: true, pri: 8, draw(P, r) {
+      P.rect(0, 0, 16, 16, '#16301b');
+      for (let i = 0; i < 5; i++) {
+        const x = r.int(0, 15), y = r.int(0, 15), rad = r.int(3, 5), g = r.pick(['#244a28', '#2a5230', '#1f4224', '#2f5a2e']);
+        P.circle(x, y, rad, g); P.circle(x - 1, y - 1, rad - 2, U.shade(g, 0.18));
+      }
+      P.speckle(0, 0, 16, 16, '#3a6a3a', 6, r); P.speckle(0, 0, 16, 16, '#10241a', 8, r);
+    },
+  };
+  T.cliff = {
+    color: '#6a5a4a', solid: true, wall: true, pri: 9, draw(P, r) {
+      P.rect(0, 0, 16, 16, '#4e4238');
+      for (let i = 0; i < 4; i++) { const x = r.int(-2, 12), y = r.int(0, 13), w = r.int(5, 9), c = r.pick(['#6a5a4a', '#74644f', '#5e5042']); P.rect(x, y, w, 4, c); P.rect(x, y, w, 1, U.shade(c, 0.22)); P.rect(x, y + 3, w, 1, U.shade(c, -0.25)); }
+      if (r.chance(0.3)) P.rect(r.int(1, 12), r.int(1, 12), 3, 1, '#4a6a3a');
+    },
+  };
+  T.farmland = { color: '#6a4a2c', pri: 2, draw(P, r) { P.rect(0, 0, 16, 16, '#6a4a2c'); for (let y = 1; y < 16; y += 4) { P.rect(0, y, 16, 1, '#4e3620'); P.rect(0, y + 1, 16, 1, '#7e5c38'); } P.speckle(0, 0, 16, 16, '#5a3e24', 10, r); } };
+  T.gravel = { color: '#8a8680', pri: 2, draw(P, r) { base(P, '#86827a', r, [['#9a968e', 18], ['#6e6a64', 16], ['#aaa69e', 6]]); } };
+  T.mud = { color: '#5a4a32', pri: 2, draw(P, r) { base(P, '#5a4a32', r, [['#4e4028', 18], ['#665638', 10]]); if (r.chance(0.35)) { const x = r.int(1, 10), y = r.int(2, 12); P.ellipse(x + 2, y, 3, 1, '#3e3a26'); P.px(x + 1, y, '#8a8a6a'); } } };
+  T.bog = {
+    color: '#2e3f2a', solid: true, water: true, pri: 0, draw(P, r) {
+      base(P, '#2e3f2a', r, [['#34482e', 14], ['#263626', 12]]);
+      if (r.chance(0.4)) { const x = r.int(2, 12), y = r.int(2, 12); P.ellipse(x, y, 3, 1, '#4a6a34'); P.px(x - 1, y, '#6a8a44'); }
+      if (r.chance(0.3)) { P.px(r.int(1, 14), r.int(1, 14), '#8aa070'); }
+    },
+  };
+  T.murk = { color: '#4a5a3a', water: true, pri: 1, draw(P, r) { base(P, '#465838', r, [['#52643e', 14], ['#3c4c32', 10]]); if (r.chance(0.3)) P.rect(r.int(1, 10), r.int(2, 13), 4, 1, '#6a7c4c'); } };
+  T.planks = { color: '#7a5a34', pri: 7, draw(P, r) { P.rect(0, 0, 16, 16, '#7a5a34'); for (let y = 0; y < 16; y += 4) { P.rect(0, y + 3, 16, 1, '#4a3418'); P.rect(0, y, 16, 1, '#8e6a40'); P.px(r.int(0, 15), y + 1, '#5a3e20'); } P.px(2, 1, '#3a2a18'); P.px(13, 9, '#3a2a18'); } };
+  T.web = {
+    color: '#4a4448', pri: 3, draw(P, r) {
+      base(P, '#443e44', r, [['#3a343a', 18], ['#524a52', 10]]);
+      if (r.chance(0.55)) { const c = 'rgba(220,220,230,0.55)'; const x = r.int(0, 15), y = r.int(0, 15); P.line(x, y, r.int(0, 15), r.chance(0.5) ? 0 : 15, c); P.line(x, y, r.chance(0.5) ? 0 : 15, r.int(0, 15), c); P.line(x, y, r.int(0, 15), r.int(0, 15), c); }
+    },
+  };
+  T.cryptfloor = {
+    color: '#4a4a54', pri: 4, draw(P, r, x, y) {
+      P.rect(0, 0, 16, 16, '#2e2e36');
+      const o = (y % 2) * 8;
+      for (const [sx, sy, w, h] of [[-o, 0, 16, 8], [16 - o, 0, 16, 8], [0, 8, 8, 8], [8, 8, 8, 8]]) { const c = r.pick(['#4a4a54', '#50505a', '#46464e']); P.rect(sx + 1, sy + 1, w - 1, h - 1, c); P.rect(sx + 1, sy + 1, w - 1, 1, U.shade(c, 0.15)); }
+      if (r.chance(0.2)) P.line(r.int(1, 7), r.int(1, 14), r.int(8, 14), r.int(1, 14), '#34343c');
+      if (r.chance(0.12)) P.speckle(0, 0, 16, 16, '#3e5a3a', 5, r);
+    },
+  };
+  T.cryptwall = { color: '#2a2a34', solid: true, wall: true, pri: 9, draw(P, r, x, y) { bricks(P, r, '#18181e', ['#2e2e38', '#34343e', '#2a2a32'], 4, 8, x, y); if (r.chance(0.08)) { P.rect(6, 5, 4, 5, '#101014'); P.px(7, 7, '#e0d8c8'); P.px(8, 7, '#e0d8c8'); } } };
+  T.sandstone = {
+    color: '#c8a870', pri: 4, draw(P, r) {
+      P.rect(0, 0, 16, 16, '#9a7c4c');
+      for (const [sx, sy] of [[0, 0], [8, 0], [0, 8], [8, 8]]) { const c = r.pick(['#c8a870', '#c09e66', '#d0b07a']); P.rect(sx + 1, sy + 1, 7, 7, c); P.rect(sx + 1, sy + 1, 7, 1, U.shade(c, 0.12)); }
+      P.speckle(0, 0, 16, 16, '#dcc58a', 6, r);
+    },
+  };
+  T.sandwall = {
+    color: '#a07a48', solid: true, wall: true, pri: 9, draw(P, r, x, y) {
+      bricks(P, r, '#6a4e2c', ['#a8804c', '#b08a54', '#9a7444'], 5, 8, x, y);
+      if (r.chance(0.18)) { const c = '#5a3e20'; const k = r.int(0, 3); P.rect(5, 5, 6, 1, c); if (k === 0) { P.circle(8, 9, 2, c); P.px(8, 9, '#b08a54'); } else if (k === 1) { P.rect(7, 7, 2, 5, c); P.rect(5, 9, 6, 1, c); } else if (k === 2) { P.line(5, 12, 8, 7, c); P.line(8, 7, 11, 12, c); } else { P.rect(6, 7, 1, 5, c); P.rect(9, 7, 1, 5, c); P.px(7, 8, c); P.px(8, 9, c); } }
+    },
+  };
+  T.sandcliff = {
+    color: '#b0804a', solid: true, wall: true, pri: 9, draw(P, r) {
+      P.rect(0, 0, 16, 16, '#9a6c3c');
+      for (let y = 0; y < 16; y += 4) { const c = r.pick(['#b8864e', '#a8783e', '#c09058']); P.rect(0, y, 16, 3, c); P.rect(0, y, 16, 1, U.shade(c, 0.18)); P.rect(r.int(0, 12), y + 2, r.int(2, 5), 1, U.shade(c, -0.25)); }
+    },
+  };
+  T.dune = { color: '#d4b06a', pri: 1, draw(P, r) { base(P, '#d4b06a', r, [['#c8a45e', 16], ['#e0bc78', 10]]); for (let i = 0; i < 2; i++) { const y = r.int(2, 13), x = r.int(0, 8); P.rect(x, y, 6, 1, '#b8945a'); P.rect(x + 1, y - 1, 4, 1, '#e8c888'); } } };
+  T.tombfloor = {
+    color: '#6a5234', pri: 4, draw(P, r, x, y) {
+      P.rect(0, 0, 16, 16, '#3e3020');
+      P.rect(1, 1, 15, 15, r.pick(['#6a5234', '#705838', '#644c30']));
+      P.rect(1, 1, 15, 1, '#806644');
+      if ((x + y) % 4 === 0) { P.rect(6, 6, 4, 4, '#b08a3a'); P.rect(7, 7, 2, 2, '#e0c060'); }
+      P.speckle(1, 1, 15, 15, '#5a4428', 8, r);
+    },
+  };
+  T.snowpath = { color: '#c8d2e0', pri: 2, draw(P, r) { base(P, '#c8d2e0', r, [['#b8c4d4', 18], ['#dce4ee', 10]]); if (r.chance(0.35)) { const x = r.int(3, 10), y = r.int(2, 10); P.rect(x, y, 2, 3, '#a8b4c6'); P.rect(x + 3, y + 4, 2, 3, '#a8b4c6'); } } };
+  T.snowcliff = {
+    color: '#6a7080', solid: true, wall: true, pri: 9, draw(P, r) {
+      P.rect(0, 0, 16, 16, '#4e5462');
+      for (let i = 0; i < 4; i++) { const x = r.int(-2, 12), y = r.int(3, 13), w = r.int(5, 9), c = r.pick(['#6a7080', '#727a8a', '#5e6474']); P.rect(x, y, w, 4, c); P.rect(x, y, w, 1, U.shade(c, 0.25)); }
+      P.rect(0, 0, 16, 3, '#e8eef6'); for (let i = 0; i < 16; i += 2) P.rect(i, 3, 1, r.int(0, 3), '#e8eef6');
+    },
+  };
+  T.icewall = {
+    color: '#5a8ab8', solid: true, wall: true, pri: 9, draw(P, r) {
+      P.rect(0, 0, 16, 16, '#3a6a98');
+      for (let i = 0; i < 4; i++) { const x = r.int(0, 12), y = r.int(0, 12), c = r.pick(['#5a8ab8', '#6a9ac8', '#4e7eac']); P.rect(x, y, r.int(3, 6), r.int(3, 6), c); P.px(x, y, '#c8ecff'); }
+      P.line(r.int(0, 15), 0, r.int(0, 15), 15, '#a8d8f8');
+    },
+  };
+  T.frozenlake = {
+    color: '#9fd0ec', pri: 1, draw(P, r) {
+      base(P, '#9fd0ec', r, [['#b0dcf4', 10], ['#90c4e4', 8]]);
+      if (r.chance(0.5)) P.line(r.int(0, 15), r.int(0, 15), r.int(0, 15), r.int(0, 15), '#e4f6ff');
+      if (r.chance(0.25)) { const x = r.int(2, 12), y = r.int(2, 12); P.line(x, y, x + 3, y + 2, '#6aa0c8'); P.line(x + 3, y + 2, x + 2, y + 5, '#6aa0c8'); }
+    },
+  };
+  T.icefloor = { color: '#7aa8c8', pri: 2, draw(P, r) { base(P, '#7aa8c8', r, [['#88b4d2', 14], ['#6a98ba', 12]]); if (r.chance(0.3)) P.line(r.int(0, 8), r.int(0, 15), r.int(8, 15), r.int(0, 15), '#b8e0f8'); } };
+  T.volcrock = { color: '#3a3034', pri: 2, draw(P, r) { base(P, '#3a3034', r, [['#443a3e', 16], ['#2e2628', 14]]); if (r.chance(0.12)) P.px(r.int(1, 14), r.int(1, 14), '#c04818'); } };
+  T.volcwall = {
+    color: '#241c20', solid: true, wall: true, pri: 9, draw(P, r) {
+      P.rect(0, 0, 16, 16, '#1e171a');
+      for (let i = 0; i < 4; i++) { const x = r.int(-2, 12), y = r.int(0, 13), w = r.int(5, 9), c = r.pick(['#2e2428', '#342a2e', '#281f22']); P.rect(x, y, w, 4, c); P.rect(x, y, w, 1, U.shade(c, 0.25)); }
+      if (r.chance(0.25)) { const x = r.int(2, 12), y = r.int(2, 12); P.line(x, y, x + 3, y + 2, '#b03810'); P.px(x + 1, y, '#ff7020'); }
+    },
+  };
+  T.lavacrack = {
+    color: '#3a2a2a', pri: 3, draw(P, r) {
+      base(P, '#342a2c', r, [['#3e3234', 14], ['#2a2224', 12]]);
+      let x = r.int(0, 15), y = r.int(0, 15);
+      for (let i = 0; i < 6; i++) { const nx = U.clamp(x + r.int(-4, 4), 0, 15), ny = U.clamp(y + r.int(-4, 4), 0, 15); P.line(x, y, nx, ny, '#c04010'); x = nx; y = ny; }
+      P.px(x, y, '#ffb040'); P.speckle(0, 0, 16, 16, '#ff7020', 2, r);
+    },
+  };
+  T.citfloor = {
+    color: '#2a2436', pri: 4, draw(P, r, x, y) {
+      P.rect(0, 0, 16, 16, '#16121e');
+      const c = (x + y) % 2 ? '#2a2436' : '#241f30';
+      P.rect(1, 1, 15, 15, c); P.rect(1, 1, 15, 1, U.shade(c, 0.2)); P.rect(1, 1, 1, 15, U.shade(c, 0.1));
+      if (r.chance(0.25)) { P.line(r.int(2, 8), r.int(2, 14), r.int(8, 14), r.int(2, 14), '#4a2a6a'); }
+      if (r.chance(0.06)) P.px(r.int(3, 12), r.int(3, 12), '#b060ff');
+    },
+  };
+  T.citwall = {
+    color: '#1a1622', solid: true, wall: true, pri: 9, draw(P, r, x, y) {
+      bricks(P, r, '#0c0a10', ['#1e1a28', '#231e2e', '#1a1622'], 8, 8, x, y);
+      if (r.chance(0.1)) { P.rect(6, 4, 4, 1, '#9040e0'); P.rect(7, 5, 2, 4, '#9040e0'); P.px(7, 6, '#e0b0ff'); }
+    },
+  };
+  T.royalcarpet = {
+    color: '#5a1a3a', pri: 6, draw(P, r, x, y) {
+      P.rect(0, 0, 16, 16, '#5a1a3a');
+      P.speckle(0, 0, 16, 16, '#4a1430', 10, r);
+      const d = '#b08a3a';
+      P.line(8, 2, 14, 8, d); P.line(14, 8, 8, 14, d); P.line(8, 14, 2, 8, d); P.line(2, 8, 8, 2, d);
+      P.rect(7, 7, 2, 2, '#e0c060');
+    },
+  };
+  T.stonebridge = { color: '#5a5460', pri: 7, draw(P, r) { P.rect(0, 0, 16, 16, '#5a5460'); for (let y = 0; y < 16; y += 4) P.rect(0, y, 16, 1, '#46404c'); P.speckle(0, 0, 16, 16, '#6a6470', 10, r); P.rect(0, 0, 2, 16, '#3a3440'); P.rect(14, 0, 2, 16, '#3a3440'); } };
+  T.tilefloor = { color: '#b8a888', pri: 5, draw(P, r, x, y) { const c = (x + y) % 2 ? '#b8a888' : '#a89878'; P.rect(0, 0, 16, 16, c); P.rect(0, 0, 16, 1, U.shade(c, 0.15)); P.rect(0, 15, 16, 1, U.shade(c, -0.2)); P.speckle(0, 0, 16, 16, U.shade(c, -0.1), 6, r); } };
+
   // Pre-render a whole tile layer to one big canvas, with dithered edges between tiles.
   T.render = function (map) {
     const S = G.TILE;
