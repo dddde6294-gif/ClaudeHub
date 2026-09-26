@@ -453,6 +453,261 @@
   PR.ruinwall = { w: 32, h: 30, ax: 16, ay: 28, box: [-16, -8, 32, 8], variants: 3, draw(P, r) { const c = '#8a847a'; const top = r.int(4, 12); for (let x = 0; x < 32; x += 8) { const h = r.int(top, 26); for (let y = 28 - h; y < 28; y += 4) P.rect(x, y, 7, 3, U.shade(c, r.range(-0.15, 0.1))); } P.rect(0, 26, 32, 2, '#4a6a3a'); } };
   PR.castlewall = { w: 48, h: 48, ax: 24, ay: 46, box: [-24, -14, 48, 14], draw(P) { const c = '#4a4458'; P.rect(0, 10, 48, 36, c); for (let y = 12; y < 46; y += 5) for (let x = (y % 2) * 5; x < 48; x += 10) P.rect(x, y, 9, 4, U.shade(c, ((x + y) % 7) / 40)); for (let x = 0; x < 48; x += 12) P.rect(x, 2, 7, 9, c); P.rect(20, 22, 8, 12, '#1a1424'); P.rect(22, 24, 4, 8, '#ff5030'); } };
 
+  // ==========================================================================
+  // World props (zones)
+  // ==========================================================================
+  PR.autumntree = {
+    w: 32, h: 44, ax: 16, ay: 41, box: [-4, -4, 8, 5], variants: 4,
+    draw(P, r) {
+      trunk(P, 14, 26, 15, '#5a3a22');
+      const g = r.pick(['#c8622a', '#d8903a', '#b8442a', '#a8a03a']);
+      blob(P, 16, 22, 10, U.shade(g, -0.2), r);
+      blob(P, 11, 16, 8, g, r); blob(P, 21, 15, 8, g, r); blob(P, 16, 9, 8, U.shade(g, 0.1), r);
+    },
+  };
+  PR.hut = { w: 52, h: 48, ax: 26, ay: 46, box: [-22, -20, 44, 20], variants: 2, draw(P, r) { house(P, r, { w: 52, h: 48, roofH: 22, wall: '#8a6a44', roof: r.pick(['#6a7a3a', '#7a6a3a']), timber: true, flowers: false }); } };
+  PR.stilthut = {
+    w: 60, h: 66, ax: 30, ay: 64, box: [-26, -10, 52, 10], variants: 2,
+    draw(P, r, ctx) {
+      for (const x of [6, 20, 38, 52]) { P.rect(x, 40, 3, 26, '#4a3420'); P.rect(x, 40, 1, 26, '#6a4a2c'); }
+      P.rect(2, 42, 56, 4, '#6a4a2c'); P.rect(2, 42, 56, 1, '#8a6a40');
+      ctx.save(); ctx.translate(0, -4);
+      house(P, r, { w: 60, h: 48, roofH: 22, wall: r.pick(['#7a6a4a', '#6a5a3a']), roof: '#5a6a3a', timber: true, flowers: false });
+      ctx.restore();
+      P.rect(24, 46, 12, 2, '#5a3e22'); P.rect(26, 48, 8, 16, 'rgba(0,0,0,0)');
+      for (let y = 48; y < 64; y += 3) P.rect(26, y, 8, 1, '#6a4a2c');
+    },
+  };
+  PR.mill = {
+    w: 72, h: 96, ax: 36, ay: 93, box: [-18, -16, 36, 16],
+    draw(P, r) {
+      const c = '#8a847a';
+      for (let y = 30; y < 94; y++) { const w = Math.round(12 + (y - 30) * 0.12); P.rect(36 - w, y, w * 2, 1, (y % 6) ? c : U.shade(c, -0.2)); }
+      for (let y = 34; y < 90; y += 6) for (let x = 26; x < 46; x += 7) P.rect(x + (y % 12 ? 3 : 0), y, 1, 5, U.shade(c, -0.18));
+      for (let y = 18; y < 32; y++) { const w = Math.round((y - 18) * 1.1); P.rect(36 - w, y, w * 2, 1, y % 3 ? '#6a3a2a' : '#5a2e20'); }
+      P.rect(32, 72, 8, 22, '#2a1a10'); P.rect(33, 52, 6, 7, '#1a1410');
+      // broken sails
+      P.circle(36, 34, 3, '#4a3420');
+      const sail = (x1, y1) => { P.line(36, 34, x1, y1, '#5a3e22'); P.line(37, 34, x1 + 1, y1, '#5a3e22'); };
+      sail(8, 8); sail(62, 12); sail(58, 58); sail(22, 60);
+      for (let i = 0; i < 6; i++) { P.rect(14 + i * 3, 12 + i * 3, 6, 2, '#b8a888'); P.rect(52 - i * 2, 16 + i * 2, 6, 2, '#b8a888'); }
+      P.rect(46, 50, 6, 2, '#b8a888'); P.rect(50, 53, 5, 2, '#a89878');
+      P.rect(10, 88, 14, 5, '#4a6a3a'); P.rect(48, 90, 16, 4, '#4a6a3a');
+    },
+  };
+  PR.mausoleum = {
+    w: 72, h: 66, ax: 36, ay: 63, box: [-32, -22, 64, 18],
+    draw(P) {
+      const c = '#7a7a86', d = U.shade(c, -0.3), l = U.shade(c, 0.2);
+      P.rect(2, 58, 68, 6, d); P.rect(4, 56, 64, 3, c);
+      P.rect(8, 24, 56, 33, c); P.rect(8, 24, 56, 2, l);
+      for (let y = 28; y < 56; y += 5) P.rect(8, y, 56, 1, U.shade(c, -0.12));
+      for (const x of [10, 22, 44, 56]) { P.rect(x, 26, 6, 31, U.shade(c, 0.12)); P.rect(x, 26, 1, 31, l); P.rect(x + 5, 26, 1, 31, d); }
+      for (let y = 0; y < 22; y++) { const w = Math.round(34 * y / 22); P.rect(36 - w, 2 + y, w * 2, 1, y % 5 ? c : d); }
+      P.rect(0, 22, 72, 3, d); P.rect(0, 22, 72, 1, l);
+      P.circle(36, 14, 4, '#e0d8c8'); P.px(34, 14, '#202028'); P.px(37, 14, '#202028'); P.rect(35, 17, 3, 1, '#202028');
+      P.rect(29, 34, 14, 23, '#0e0c12'); P.rect(28, 33, 16, 2, d); P.rect(30, 35, 12, 1, '#2a2436');
+      P.speckle(8, 24, 56, 34, '#4e6a44', 30, U.rng('maus'));
+    },
+  };
+  PR.gate = {
+    w: 88, h: 64, ax: 44, ay: 61, box: null,
+    draw(P) {
+      const w = '#6a4a2c', d = '#4a3018', l = '#8a6a40';
+      for (const x0 of [2, 70]) { P.rect(x0, 10, 16, 52, w); for (let x = x0; x < x0 + 16; x += 4) { P.rect(x, 10, 1, 52, d); P.rect(x + 1, 6, 2, 4, w); P.px(x + 1, 5, l); } P.rect(x0, 20, 16, 2, d); P.rect(x0, 48, 16, 2, d); P.rect(x0 + 5, 26, 6, 6, '#20160e'); }
+      P.rect(10, 4, 68, 8, w); P.rect(10, 4, 68, 2, l); P.rect(10, 11, 68, 1, d);
+      for (let x = 12; x < 78; x += 6) P.rect(x, 5, 1, 6, d);
+      P.rect(36, 12, 16, 8, '#a0763e'); P.rect(38, 14, 12, 1, '#5a3a1a'); P.rect(38, 16, 9, 1, '#5a3a1a');
+    },
+  };
+  PR.palisade = { w: 16, h: 28, ax: 8, ay: 26, box: [-8, -4, 16, 4], draw(P, r) { for (let x = 0; x < 16; x += 4) { const h = r.int(20, 24); P.rect(x, 26 - h, 4, h, '#6a4a2c'); P.rect(x, 26 - h, 1, h, '#8a6a40'); P.rect(x + 3, 26 - h, 1, h, '#4a3018'); P.rect(x + 1, 25 - h, 2, 1, '#8a6a40'); } P.rect(0, 10, 16, 2, '#4a3018'); } };
+  PR.campfire = {
+    w: 22, h: 18, ax: 11, ay: 15, box: [-5, -3, 10, 3], light: { r: 80, color: '#ff9040', flicker: 0.25 }, anim: 3,
+    draw(P, r, ctx, f) {
+      for (const [x, y] of [[3, 13], [7, 15], [13, 15], [17, 13], [5, 11], [16, 11]]) { P.rect(x, y, 3, 2, '#6a6a72'); P.px(x, y, '#8a8a92'); }
+      P.rect(5, 12, 12, 2, '#5a3a20'); P.line(6, 14, 15, 10, '#6a4424');
+      const h = [6, 8, 7][f || 0];
+      P.rect(8, 12 - h, 6, h, '#ff6020'); P.rect(9, 13 - h, 4, h - 1, '#ffb040'); P.rect(10, 14 - h, 2, h - 3, '#fff0a0'); P.px(10 + (f % 2), 10 - h, '#ff9040');
+    },
+  };
+  PR.cart = {
+    w: 42, h: 30, ax: 21, ay: 27, box: [-18, -8, 36, 8], variants: 2,
+    draw(P, r) {
+      P.rect(4, 8, 30, 12, '#8a5a30'); P.rect(4, 8, 30, 2, '#a8784a'); for (let x = 8; x < 34; x += 6) P.rect(x, 10, 1, 10, '#6a4424');
+      P.rect(34, 16, 8, 2, '#6a4424');
+      if (r.chance(0.5)) { P.circle(12, 7, 4, '#c8a050'); P.circle(20, 6, 4, '#d8b060'); P.circle(27, 7, 4, '#c8a050'); } else { P.rect(8, 2, 10, 7, '#a0763e'); P.rect(20, 4, 10, 5, '#8a6a3a'); }
+      for (const x of [9, 29]) { P.circle(x, 22, 5, '#4a3018'); P.circle(x, 22, 3, '#6a4a2c'); P.px(x, 22, '#2a1a10'); }
+    },
+  };
+  PR.haystack = { w: 26, h: 22, ax: 13, ay: 19, box: [-10, -5, 20, 5], draw(P) { P.ellipse(13, 13, 11, 7, '#b8943a'); P.ellipse(13, 10, 9, 7, '#d0ac4a'); P.ellipse(11, 7, 5, 3, '#e8c870'); for (let i = 0; i < 8; i++) P.px(4 + i * 2, 16 - (i % 3), '#8a6a2a'); } };
+  PR.woodpile = { w: 26, h: 18, ax: 13, ay: 15, box: [-11, -5, 22, 5], draw(P) { for (let row = 0; row < 3; row++) for (let i = 0; i < 4 - row; i++) { const x = 3 + row * 3 + i * 6, y = 11 - row * 4; P.circle(x + 2, y + 2, 3, '#7a5030'); P.circle(x + 2, y + 2, 1, '#c8a070'); } } };
+  PR.crops = {
+    w: 16, h: 16, ax: 8, ay: 14, box: null, variants: 3,
+    draw(P, r, ctx, f) {
+      const v = r.int(0, 2);
+      if (v === 0) { for (let i = 0; i < 5; i++) { const x = 2 + i * 3; P.rect(x, 4, 1, 10, '#a89040'); P.rect(x - 1, 2, 3, 3, '#e0c060'); } }
+      else if (v === 1) { for (const [x, y] of [[4, 6], [11, 5], [7, 11]]) { P.circle(x, y, 3, '#5aa04a'); P.circle(x, y, 1, '#8ad070'); } }
+      else { for (const [x, y] of [[5, 9], [11, 10]]) { P.ellipse(x, y, 3, 2, '#e07a20'); P.px(x, y - 3, '#4a8a3a'); P.px(x - 1, y - 1, '#f0a040'); } P.line(2, 12, 14, 12, '#3a6a28'); }
+    },
+  };
+  PR.scarecrow = {
+    w: 22, h: 34, ax: 11, ay: 31, box: [-2, -2, 4, 2],
+    draw(P) { P.rect(10, 8, 2, 24, '#6a4424'); P.rect(2, 12, 18, 2, '#6a4424'); P.rect(6, 12, 10, 10, '#7a5a8a'); P.rect(6, 20, 10, 2, '#5a3a6a'); P.circle(11, 7, 4, '#d8c080'); P.px(9, 6, '#202020'); P.px(12, 6, '#202020'); P.rect(5, 1, 12, 2, '#6a5a2a'); P.rect(8, -1, 6, 3, '#6a5a2a'); for (const x of [2, 19]) P.rect(x, 14, 1, 3, '#e0c060'); },
+  };
+  PR.dummy = { w: 18, h: 30, ax: 9, ay: 27, box: [-4, -3, 8, 3], draw(P) { P.rect(8, 10, 2, 18, '#6a4424'); P.rect(2, 12, 14, 2, '#6a4424'); P.ellipse(9, 16, 5, 6, '#c8a870'); P.rect(4, 14, 10, 1, '#8a6a3a'); P.rect(4, 18, 10, 1, '#8a6a3a'); P.circle(9, 6, 4, '#c8a870'); P.px(7, 5, '#5a3a1a'); P.px(10, 5, '#5a3a1a'); P.circle(9, 16, 2, '#c03030'); } };
+  PR.log = { w: 34, h: 14, ax: 17, ay: 12, box: [-15, -5, 30, 5], variants: 2, draw(P, r) { P.rect(3, 4, 28, 7, '#6a4424'); P.rect(3, 4, 28, 2, '#8a6038'); P.rect(3, 10, 28, 1, '#4a3018'); P.ellipse(3, 7, 2, 3, '#a07a4a'); P.px(3, 7, '#6a4424'); P.ellipse(31, 7, 2, 3, '#8a6038'); if (r.chance(0.6)) { P.rect(10, 3, 6, 2, '#4a7a3a'); P.px(22, 4, '#e04040'); P.px(21, 3, '#e8e0d0'); } } };
+  PR.stump = { w: 18, h: 14, ax: 9, ay: 12, box: [-5, -3, 10, 3], draw(P) { P.rect(3, 4, 12, 8, '#6a4424'); P.rect(2, 10, 14, 2, '#5a3a1a'); P.ellipse(9, 4, 6, 2, '#b08a5a'); P.ellipse(9, 4, 3, 1, '#8a6038'); P.px(9, 4, '#6a4424'); } };
+  PR.reeds = { w: 14, h: 20, ax: 7, ay: 18, box: null, variants: 3, draw(P, r) { for (let i = 0; i < 5; i++) { const x = r.int(1, 12), h = r.int(9, 16); P.rect(x, 18 - h, 1, h, r.pick(['#5a7a3a', '#6a8a3a', '#4a6a2a'])); if (r.chance(0.6)) P.rect(x - 1, 18 - h, 3, 4, '#6a4424'); } } };
+  PR.mangrove = {
+    w: 44, h: 50, ax: 22, ay: 47, box: [-5, -6, 10, 6], variants: 2,
+    draw(P, r) {
+      const c = '#4a3e30';
+      for (const dx of [-14, -8, 8, 14]) { P.line(22, 32, 22 + dx, 47, c); P.line(23, 32, 23 + dx, 47, U.shade(c, -0.2)); }
+      trunk(P, 20, 20, 16, c);
+      const g = r.pick(['#3a5a34', '#34522e', '#40603a']);
+      blob(P, 22, 16, 13, U.shade(g, -0.2), r); blob(P, 14, 12, 9, g, r); blob(P, 30, 12, 9, g, r); blob(P, 22, 7, 8, U.shade(g, 0.1), r);
+      for (let i = 0; i < 6; i++) { const x = r.int(8, 36); P.rect(x, r.int(18, 24), 1, r.int(4, 9), '#6a7a4a'); }
+    },
+  };
+  PR.swamptree = {
+    w: 38, h: 50, ax: 19, ay: 47, box: [-4, -4, 8, 5], variants: 3,
+    draw(P, r) {
+      trunk(P, 17, 22, 25, '#3e362c');
+      P.line(19, 26, 8, 18, '#3e362c'); P.line(20, 24, 31, 16, '#3e362c');
+      const g = r.pick(['#4a5a30', '#3e5030', '#56603a']);
+      blob(P, 19, 14, 11, g, r); blob(P, 9, 17, 7, U.shade(g, -0.1), r); blob(P, 29, 16, 7, U.shade(g, -0.1), r);
+      for (let i = 0; i < 12; i++) { const x = r.int(4, 34), y = r.int(16, 22); P.rect(x, y, 1, r.int(5, 16), r.pick(['#7a8a5a', '#6a7a4a', '#8a9a6a'])); }
+    },
+  };
+  PR.bigshroom = {
+    w: 30, h: 34, ax: 15, ay: 31, box: [-4, -3, 8, 3], variants: 3, light: { r: 44, color: '#60e0c0', flicker: 0.06 },
+    draw(P, r) {
+      P.rect(12, 14, 6, 17, '#d8d0c0'); P.rect(12, 14, 2, 17, '#f0e8d8'); P.rect(11, 29, 8, 2, '#b8b0a0');
+      const c = r.pick(['#40b0a0', '#8a50c0', '#c04a4a']);
+      P.ellipse(15, 12, 13, 7, U.shade(c, -0.25)); P.ellipse(15, 10, 12, 7, c); P.ellipse(11, 7, 5, 2, U.shade(c, 0.3));
+      for (let i = 0; i < 5; i++) P.circle(r.int(5, 25), r.int(6, 13), 1, '#f0f0e0');
+    },
+  };
+  PR.web = {
+    w: 42, h: 38, ax: 21, ay: 36, box: null, variants: 2, outline: false,
+    draw(P, r) {
+      const c = 'rgba(230,230,240,0.7)', cx = 21 + r.int(-3, 3), cy = 17 + r.int(-3, 3);
+      const spokes = 8, pts = [];
+      for (let i = 0; i < spokes; i++) { const a = i / spokes * U.TAU + r.range(-0.2, 0.2); const len = r.range(14, 19); pts.push([a, len]); P.line(cx, cy, cx + Math.cos(a) * len, cy + Math.sin(a) * len, c); }
+      for (let k = 1; k <= 4; k++) for (let i = 0; i < spokes; i++) { const [a0, l0] = pts[i], [a1, l1] = pts[(i + 1) % spokes]; const f = k / 4.5; P.line(cx + Math.cos(a0) * l0 * f, cy + Math.sin(a0) * l0 * f, cx + Math.cos(a1) * l1 * f, cy + Math.sin(a1) * l1 * f, 'rgba(210,210,225,0.5)'); }
+    },
+  };
+  PR.eggsac = {
+    w: 22, h: 20, ax: 11, ay: 18, box: [-7, -4, 14, 4], variants: 2, light: { r: 30, color: '#a0ff60', flicker: 0.1 },
+    draw(P, r) { for (const [x, y, s] of [[7, 12, 5], [15, 13, 4], [11, 7, 5]]) { P.circle(x, y, s, '#c8d0a0'); P.circle(x - 1, y - 1, s - 2, '#e8f0c0'); P.circle(x, y, 1, '#80c040'); } P.line(2, 18, 20, 18, 'rgba(230,230,240,0.6)'); },
+  };
+  PR.cocoon = { w: 16, h: 26, ax: 8, ay: 24, box: [-4, -3, 8, 3], variants: 2, draw(P, r) { P.line(8, 0, 8, 4, '#d8d8e0'); P.ellipse(8, 14, 5, 10, '#c8c8d0'); P.ellipse(7, 12, 3, 7, '#e0e0e8'); for (let y = 6; y < 24; y += 3) P.line(3, y, 13, y + 2, '#a8a8b8'); if (r.chance(0.5)) { P.rect(6, 8, 4, 3, '#e8b088'); P.px(7, 9, '#202020'); } } };
+  PR.obelisk = {
+    w: 22, h: 58, ax: 11, ay: 55, box: [-7, -5, 14, 5],
+    draw(P, r) { const c = '#c8a870'; P.rect(2, 50, 18, 6, '#9a7c4c'); for (let y = 6; y < 50; y++) { const w = Math.round(4 + (y - 6) * 0.1); P.rect(11 - w, y, w * 2, 1, c); } P.rect(7, 6, 2, 44, '#dcc08a'); for (let y = 0; y < 7; y++) P.rect(11 - Math.round(y * 0.7), y, Math.round(y * 1.4) + 1, 1, '#e0c060'); for (let y = 12; y < 46; y += 7) { P.rect(10, y, 3, 1, '#7a5a30'); P.px(11, y + 2, '#7a5a30'); P.rect(9, y + 4, 5, 1, '#7a5a30'); } },
+  };
+  PR.pyramid = {
+    w: 176, h: 112, ax: 88, ay: 109, box: [-84, -42, 168, 38],
+    draw(P) {
+      for (let s = 0; s < 12; s++) {
+        const y = 100 - s * 8, hw = 86 - s * 7;
+        const c = s % 2 ? '#c8a468' : '#bc9860';
+        P.rect(88 - hw, y, hw * 2, 8, c); P.rect(88 - hw, y, hw * 2, 1, '#dcc08a'); P.rect(88 - hw, y + 7, hw * 2, 1, '#9a7a48');
+        P.rect(88, y, hw, 8, U.shade(c, -0.12));
+        for (let x = 88 - hw + 6; x < 88 + hw - 4; x += 12) P.rect(x + (s % 2) * 6, y + 1, 1, 6, '#9a7a48');
+      }
+      P.rect(80, 4, 16, 8, '#e0c060'); P.rect(80, 4, 8, 8, '#f0d880');
+      P.rect(74, 78, 28, 30, '#8a6a3a'); P.rect(78, 82, 20, 26, '#120c08'); P.rect(74, 76, 28, 3, '#e0c060');
+      P.rect(84, 70, 8, 5, '#c8a040'); P.circle(88, 72, 2, '#40c0ff');
+    },
+  };
+  PR.sandcolumn = { w: 18, h: 42, ax: 9, ay: 39, box: [-6, -5, 12, 5], variants: 3, draw(P, r) { const c = '#c8a870', h = r.pick([34, 24, 14]); P.rect(1, 36, 16, 4, '#9a7c4c'); P.rect(3, 38 - h, 12, h, c); P.rect(3, 38 - h, 2, h, '#dcc08a'); P.rect(12, 38 - h, 3, h, '#a8885a'); for (let y = 40 - h; y < 36; y += 5) P.rect(3, y, 12, 1, '#a8885a'); if (h === 34) { P.rect(1, 2, 16, 4, '#d0b07a'); P.rect(1, 2, 16, 1, '#e8cc98'); } else { P.px(5, 38 - h - 1, c); P.px(9, 38 - h - 2, c); P.px(12, 38 - h - 1, c); P.rect(r.int(12, 16), 36, 3, 2, c); } } };
+  PR.skull = { w: 24, h: 14, ax: 12, ay: 12, box: null, draw(P) { P.ellipse(12, 7, 6, 4, '#e8e0cc'); P.rect(10, 10, 5, 2, '#d8d0bc'); P.px(9, 7, '#302820'); P.px(14, 7, '#302820'); P.line(6, 5, 1, 1, '#e8e0cc'); P.line(18, 5, 23, 1, '#e8e0cc'); P.line(6, 6, 2, 3, '#d8d0bc'); P.line(18, 6, 22, 3, '#d8d0bc'); } };
+  PR.ribcage = { w: 52, h: 32, ax: 26, ay: 29, box: [-20, -4, 40, 4], draw(P) { const c = '#e0d8c4'; P.rect(4, 26, 44, 3, c); for (let i = 0; i < 6; i++) { const x = 8 + i * 7, h = 22 - Math.abs(i - 2.5) * 3; P.line(x, 27, x - 3, 27 - h, c); P.line(x + 1, 27, x - 2, 27 - h, U.shade(c, -0.15)); P.line(x - 3, 27 - h, x + 2, 27 - h - 3, c); } P.circle(48, 24, 4, c); P.px(49, 23, '#302820'); } };
+  PR.sarcophagus = {
+    w: 22, h: 34, ax: 11, ay: 31, box: [-9, -24, 18, 24], variants: 2,
+    draw(P, r) {
+      const gold = r.int(0, 1) === 1, c = gold ? '#c8a040' : '#7a7a84';
+      P.rect(1, 6, 20, 26, U.shade(c, -0.3)); P.rect(2, 4, 18, 26, c); P.rect(2, 4, 18, 2, U.shade(c, 0.25));
+      P.ellipse(11, 11, 5, 4, gold ? '#e8c860' : '#9a9aa4'); P.px(9, 11, '#202028'); P.px(13, 11, '#202028');
+      P.rect(7, 16, 8, 10, U.shade(c, -0.12)); P.rect(6, 18, 10, 2, gold ? '#40a0e0' : '#5a5a64'); P.rect(10, 16, 2, 10, U.shade(c, 0.15));
+    },
+  };
+  PR.urn = { w: 14, h: 18, ax: 7, ay: 16, box: [-4, -3, 8, 3], variants: 3, draw(P, r) { const c = r.pick(['#a0602a', '#8a7a5a', '#6a8a9a']); P.ellipse(7, 10, 5, 6, c); P.rect(4, 2, 6, 3, c); P.rect(3, 1, 8, 2, U.shade(c, 0.2)); P.ellipse(5, 8, 1, 3, U.shade(c, 0.3)); P.rect(3, 10, 8, 1, '#e0c060'); P.rect(5, 15, 4, 1, U.shade(c, -0.3)); } };
+  PR.goldpile = { w: 24, h: 14, ax: 12, ay: 12, box: null, light: { r: 26, color: '#ffd040', flicker: 0.05 }, draw(P, r) { P.ellipse(12, 9, 10, 4, '#b08a20'); P.ellipse(12, 7, 8, 4, '#e0b030'); for (let i = 0; i < 10; i++) P.px(r.int(4, 20), r.int(4, 11), r.pick(['#fff080', '#c89020'])); P.rect(15, 3, 3, 4, '#40c0ff'); } };
+  PR.coffin = { w: 18, h: 30, ax: 9, ay: 28, box: [-7, -22, 14, 22], draw(P) { const c = '#5a3a24'; P.rect(4, 2, 10, 4, c); P.rect(2, 6, 14, 10, c); P.rect(4, 16, 10, 12, c); P.rect(3, 6, 1, 10, '#7a5a3a'); P.rect(8, 7, 2, 10, '#c8a040'); P.rect(6, 10, 6, 2, '#c8a040'); } };
+  PR.candles = { w: 16, h: 14, ax: 8, ay: 12, box: null, light: { r: 40, color: '#ffb060', flicker: 0.2 }, anim: 2, draw(P, r, ctx, f) { for (const [x, h] of [[3, 6], [7, 9], [11, 5], [13, 7]]) { P.rect(x, 12 - h, 2, h, '#e8e0c8'); P.px(x + (f && x % 2 ? 1 : 0), 11 - h, '#ffc040'); P.px(x, 10 - h, '#ff8020'); } P.rect(1, 11, 14, 2, '#d8d0b8'); } };
+  PR.cross = { w: 14, h: 22, ax: 7, ay: 20, box: [-3, -3, 6, 3], variants: 2, draw(P, r) { const c = r.pick(['#8a8a92', '#6a4a2c']); P.rect(6, 2, 3, 18, c); P.rect(2, 6, 11, 3, c); P.rect(6, 2, 1, 18, U.shade(c, 0.2)); P.rect(3, 19, 9, 2, '#4a6a3a'); } };
+  PR.icespike = { w: 18, h: 28, ax: 9, ay: 26, box: [-5, -3, 10, 3], variants: 3, light: { r: 22, color: '#a0e0ff', flicker: 0.04 }, draw(P, r) { for (const [x, h, w] of [[9, r.int(18, 24), 3], [4, r.int(8, 14), 2], [14, r.int(10, 16), 2]]) { for (let y = 0; y < h; y++) { const ww = Math.max(1, Math.round(w * y / h)); P.rect(x - ww, 26 - h + y, ww * 2, 1, y % 4 ? '#b8e8ff' : '#98d0f0'); } P.px(x - 1, 27 - h, '#ffffff'); } } };
+  PR.snowman = { w: 20, h: 26, ax: 10, ay: 24, box: [-6, -3, 12, 3], draw(P) { P.circle(10, 18, 6, '#f0f4fa'); P.circle(10, 9, 4, '#ffffff'); P.px(9, 8, '#202020'); P.px(11, 8, '#202020'); P.rect(11, 9, 3, 1, '#e07020'); P.rect(6, 3, 8, 2, '#2a2a34'); P.rect(7, 0, 6, 3, '#2a2a34'); P.line(4, 15, 0, 11, '#6a4424'); P.line(16, 15, 19, 11, '#6a4424'); P.rect(7, 12, 6, 1, '#c03030'); P.px(10, 16, '#303030'); P.px(10, 19, '#303030'); } };
+  PR.frozenknight = { w: 26, h: 42, ax: 13, ay: 39, box: [-9, -5, 18, 5], draw(P) { P.rect(2, 4, 22, 36, 'rgba(160,220,255,0.55)'); P.rect(9, 10, 8, 20, '#6a7a8a'); P.rect(10, 5, 6, 6, '#7a8a9a'); P.rect(7, 12, 12, 4, '#5a6a7a'); P.rect(10, 30, 2, 8, '#5a6a7a'); P.rect(14, 30, 2, 8, '#5a6a7a'); P.rect(19, 8, 2, 22, '#a0a8b8'); P.rect(2, 4, 2, 36, 'rgba(255,255,255,0.6)'); P.line(4, 6, 12, 2, '#ffffff'); P.rect(1, 38, 24, 3, '#e8eef6'); } };
+  PR.snowrock = { w: 24, h: 18, ax: 12, ay: 16, box: [-9, -5, 18, 5], variants: 2, draw(P, r) { const c = '#6a7080'; P.ellipse(12, 11, 10, 6, U.shade(c, -0.3)); P.ellipse(12, 10, 9, 6, c); P.ellipse(11, 6, 8, 3, '#f0f4fa'); P.px(16, 12, U.shade(c, -0.2)); } };
+  PR.vent = { w: 22, h: 30, ax: 11, ay: 27, box: [-6, -3, 12, 3], light: { r: 44, color: '#ff7020', flicker: 0.3 }, anim: 3, draw(P, r, ctx, f) { P.ellipse(11, 23, 9, 4, '#2a2024'); P.ellipse(11, 22, 5, 2, '#ff6020'); P.ellipse(11, 22, 3, 1, '#ffc040'); const k = f || 0; for (let i = 0; i < 3; i++) P.circle(11 + ((i + k) % 3) - 1, 16 - i * 5 - k * 1, 3 - (i === 2 ? 1 : 0), i ? 'rgba(90,80,80,0.6)' : 'rgba(120,100,90,0.7)'); } };
+  PR.obspike = { w: 20, h: 32, ax: 10, ay: 29, box: [-6, -4, 12, 4], variants: 3, draw(P, r) { for (const [x, h, w] of [[10, r.int(22, 28), 4], [4, r.int(10, 16), 3], [16, r.int(12, 18), 3]]) { for (let y = 0; y < h; y++) { const ww = Math.max(1, Math.round(w * y / h)); P.rect(x - ww, 29 - h + y, ww * 2, 1, '#1e1824'); P.px(x - ww, 29 - h + y, '#4a3a5a'); } P.px(x, 29 - h + 3, '#ff5020'); } } };
+  PR.charredtree = { w: 28, h: 40, ax: 14, ay: 37, box: [-3, -4, 6, 5], variants: 2, draw(P, r) { const c = '#241c1c'; trunk(P, 12, 14, 23, c); P.line(13, 16, 4, 6, c); P.line(15, 12, 23, 4, c); P.line(14, 14, 13, 2, c); P.line(8, 10, 5, 12, c); for (let i = 0; i < 5; i++) P.px(r.int(12, 16), r.int(16, 34), '#ff5020'); P.px(5, 6, '#ff9040'); } };
+  PR.throne = {
+    w: 42, h: 56, ax: 21, ay: 53, box: [-16, -10, 32, 10],
+    draw(P) {
+      const c = '#1e1a28', g = '#8a40c0';
+      P.rect(6, 2, 30, 44, c); for (let x = 6; x < 36; x += 6) { P.rect(x, 0, 3, 5, c); P.px(x + 1, 0, g); }
+      P.rect(10, 8, 22, 30, '#3a1a3a'); P.rect(12, 10, 18, 26, '#5a1a3a'); P.circle(21, 14, 3, g); P.px(21, 14, '#e0b0ff');
+      P.rect(2, 30, 8, 16, c); P.rect(32, 30, 8, 16, c); P.rect(2, 30, 8, 2, '#4a3a5a'); P.rect(32, 30, 8, 2, '#4a3a5a');
+      P.rect(8, 38, 26, 8, '#2a2436'); P.rect(0, 46, 42, 8, '#16121e'); P.rect(0, 46, 42, 1, '#3a3448');
+    },
+  };
+  PR.gargoyle = { w: 26, h: 34, ax: 13, ay: 31, box: [-8, -5, 16, 5], variants: 2, draw(P, r) { const c = '#4a4658'; P.rect(4, 26, 18, 6, U.shade(c, -0.3)); P.ellipse(13, 18, 6, 8, c); P.circle(13, 9, 4, c); P.px(11, 9, '#ff3030'); P.px(15, 9, '#ff3030'); P.rect(10, 4, 1, 3, c); P.rect(16, 4, 1, 3, c); for (const s of [-1, 1]) { P.line(13 + s * 5, 14, 13 + s * 12, 6, c); P.line(13 + s * 12, 6, 13 + s * 11, 20, c); P.line(13 + s * 6, 18, 13 + s * 11, 20, c); } P.ellipse(11, 15, 2, 3, U.shade(c, 0.2)); } };
+  PR.chains = { w: 12, h: 30, ax: 6, ay: 28, box: null, variants: 2, draw(P, r) { for (const x of [3, 8]) { const n = r.int(4, 7); for (let i = 0; i < n; i++) { P.rect(x, i * 4, 2, 3, '#6a6a74'); P.px(x, i * 4, '#9a9aa4'); } } } };
+  PR.warbanner = { w: 16, h: 38, ax: 8, ay: 36, box: [-2, -2, 4, 2], variants: 2, draw(P, r) { const c = r.pick(['#2a1a3a', '#1a1a22']); P.rect(7, 2, 2, 34, '#3a3440'); P.rect(1, 3, 14, 1, '#8a6a3a'); P.rect(2, 4, 12, 20, c); for (let x = 2; x < 14; x += 3) P.rect(x, 24, 2, 3, c); P.rect(5, 9, 6, 1, '#b060ff'); P.px(5, 8, '#b060ff'); P.px(8, 7, '#b060ff'); P.px(10, 8, '#b060ff'); P.rect(6, 11, 4, 5, '#10101a'); P.px(7, 12, '#ff4040'); P.px(8, 12, '#ff4040'); } };
+  PR.altar = { w: 34, h: 26, ax: 17, ay: 23, box: [-14, -8, 28, 8], light: { r: 70, color: '#ff9a40', flicker: 0.15 }, anim: 3, draw(P, r, ctx, f) { const c = '#8a8a96'; P.rect(3, 12, 28, 11, c); P.rect(3, 12, 28, 2, U.shade(c, 0.25)); P.rect(1, 21, 32, 3, U.shade(c, -0.3)); P.rect(8, 15, 18, 5, U.shade(c, -0.15)); P.rect(12, 16, 10, 3, '#c8a040'); const h = [3, 5, 4][f || 0]; P.circle(17, 9 - h / 2, 3, '#ff8030'); P.rect(16, 5 - h, 3, 3, '#ffd060'); P.px(17, 3 - h, '#ffffff'); } };
+  PR.bedroll = { w: 16, h: 26, ax: 8, ay: 24, box: null, variants: 3, draw(P, r) { const c = r.pick(['#8a3a3a', '#3a5a8a', '#5a7a3a']); P.rect(2, 4, 12, 20, c); P.rect(2, 4, 12, 5, '#e8e0d0'); P.rect(2, 12, 12, 1, U.shade(c, -0.3)); P.rect(2, 4, 1, 20, U.shade(c, 0.2)); } };
+  PR.boat = { w: 46, h: 20, ax: 23, ay: 17, box: null, draw(P) { P.ellipse(23, 10, 21, 7, '#5a3a20'); P.ellipse(23, 9, 19, 5, '#8a5a30'); P.ellipse(23, 9, 16, 3, '#6a4424'); P.rect(12, 7, 2, 5, '#5a3a20'); P.rect(32, 7, 2, 5, '#5a3a20'); P.line(20, 8, 44, 2, '#a8784a'); } };
+  PR.cauldron = { w: 22, h: 20, ax: 11, ay: 18, box: [-7, -4, 14, 4], light: { r: 40, color: '#80ff60', flicker: 0.15 }, anim: 3, draw(P, r, ctx, f) { P.ellipse(11, 12, 8, 6, '#2a2a30'); P.ellipse(11, 7, 8, 2, '#3a3a44'); P.ellipse(11, 7, 6, 1, '#60e040'); P.ellipse(8, 10, 2, 3, '#4a4a54'); P.rect(4, 16, 2, 3, '#2a2a30'); P.rect(16, 16, 2, 3, '#2a2a30'); const k = f || 0; P.circle(8 + k * 2, 4 - k, 1, '#a0ff80'); P.px(13 - k, 2 + k, '#c0ffa0'); P.rect(7, 18, 8, 2, '#ff6020'); } };
+  PR.forge = { w: 34, h: 36, ax: 17, ay: 33, box: [-14, -8, 28, 8], light: { r: 70, color: '#ff7020', flicker: 0.2 }, anim: 3, draw(P, r, ctx, f) { const c = '#6a5a54'; P.rect(3, 10, 28, 24, c); for (let y = 12; y < 34; y += 4) for (let x = 3 + (y % 8 ? 0 : 3); x < 31; x += 7) P.rect(x, y, 6, 3, U.shade(c, ((x + y) % 3 - 1) * 0.08)); P.rect(12, 0, 10, 11, '#5a4a44'); P.rect(10, 18, 14, 10, '#1a1010'); const k = f || 0; P.rect(11, 22 - k, 12, 6 + k, '#ff6020'); P.rect(13, 24 - k, 8, 4 + k, '#ffc040'); P.px(15 + k, 21 - k, '#fff0a0'); } };
+  PR.weaponrack = { w: 30, h: 26, ax: 15, ay: 23, box: [-13, -4, 26, 4], draw(P) { P.rect(2, 20, 26, 3, '#6a4424'); P.rect(2, 6, 26, 2, '#6a4424'); P.rect(3, 6, 2, 17, '#5a3a1a'); P.rect(25, 6, 2, 17, '#5a3a1a'); P.rect(8, 1, 2, 20, '#c8d0d8'); P.rect(7, 16, 4, 1, '#c8a040'); P.rect(14, 3, 2, 18, '#8a6038'); P.rect(12, 3, 6, 4, '#a0a8b0'); P.rect(20, 0, 2, 21, '#8a6038'); P.px(21, 0, '#d0d8e0'); P.px(20, 1, '#d0d8e0'); } };
+  PR.armorstand = { w: 18, h: 32, ax: 9, ay: 30, box: [-5, -3, 10, 3], draw(P) { P.rect(8, 8, 2, 22, '#6a4424'); P.rect(4, 28, 10, 2, '#6a4424'); P.rect(3, 9, 12, 12, '#8a929a'); P.rect(3, 9, 12, 2, '#aab2ba'); P.rect(8, 11, 2, 9, '#6a727a'); P.rect(5, 1, 8, 7, '#8a929a'); P.rect(6, 4, 6, 1, '#202028'); } };
+  PR.fountain = { w: 50, h: 38, ax: 25, ay: 35, box: [-21, -14, 42, 14], anim: 3, draw(P, r, ctx, f) { const c = '#9a9aa6'; P.ellipse(25, 26, 23, 10, U.shade(c, -0.3)); P.ellipse(25, 25, 22, 9, c); P.ellipse(25, 25, 19, 7, '#3a7ac0'); P.ellipse(20, 24, 6, 2, '#6aa8e0'); P.rect(22, 8, 6, 17, c); P.rect(22, 8, 2, 17, U.shade(c, 0.2)); P.ellipse(25, 8, 7, 2, c); const k = f || 0; P.rect(24, 2 - k, 2, 6 + k, '#a8d8ff'); P.px(20 - k, 6 + k, '#a8d8ff'); P.px(30 + k, 6 + k, '#a8d8ff'); P.px(18 - k, 12 + k, '#a8d8ff'); P.px(32 + k, 12 + k, '#a8d8ff'); } };
+  PR.bench = { w: 30, h: 16, ax: 15, ay: 13, box: [-12, -3, 24, 3], draw(P) { P.rect(2, 4, 26, 3, '#8a5a30'); P.rect(2, 4, 26, 1, '#a8784a'); P.rect(2, 8, 26, 2, '#7a4a28'); P.rect(4, 10, 2, 4, '#4a4a52'); P.rect(24, 10, 2, 4, '#4a4a52'); } };
+  PR.rune = { w: 36, h: 22, ax: 18, ay: 18, box: null, light: { r: 50, color: '#b070ff', flicker: 0.15 }, anim: 3, outline: false, draw(P, r, ctx, f) { const c = ['#8a50e0', '#a070ff', '#c090ff'][f || 0]; ctx.globalAlpha = 0.9; for (let a = 0; a < 64; a++) { const t = a / 64 * U.TAU; P.px(18 + Math.cos(t) * 16, 11 + Math.sin(t) * 9, c); P.px(18 + Math.cos(t) * 11, 11 + Math.sin(t) * 6, c); } for (let i = 0; i < 6; i++) { const t = i / 6 * U.TAU + (f || 0) * 0.2; P.rect(18 + Math.cos(t) * 13.5, 11 + Math.sin(t) * 7.5, 2, 2, '#e0c0ff'); } ctx.globalAlpha = 1; } };
+  PR.pavilion = {
+    w: 76, h: 56, ax: 38, ay: 53, box: [-32, -18, 64, 16],
+    draw(P) {
+      const c = '#e8dcc0', s = '#b83a3a';
+      for (let y = 0; y < 22; y++) { const w = Math.round(8 + y * 1.4); P.rect(38 - w, 4 + y, w * 2, 1, (Math.floor(y / 3) % 2) ? c : s); }
+      P.rect(6, 26, 64, 26, c); for (let x = 6; x < 70; x += 8) P.rect(x, 26, 4, 26, U.shade(c, -0.08));
+      P.rect(6, 26, 64, 3, s); for (let x = 6; x < 70; x += 4) P.rect(x, 29, 2, 2, '#e0c060');
+      P.rect(28, 32, 20, 20, '#5a1a1a'); P.rect(30, 32, 16, 20, '#2a0e0e'); P.line(28, 32, 24, 50, c); P.line(48, 32, 52, 50, c);
+      P.rect(37, 0, 2, 5, '#6a4424'); P.rect(39, 0, 6, 3, '#40a0e0');
+    },
+  };
+  PR.dunebush = { w: 16, h: 12, ax: 8, ay: 10, box: null, variants: 2, draw(P, r) { const c = r.pick(['#9a8a4a', '#8a7a3a']); for (let i = 0; i < 9; i++) P.line(8, 10, r.int(1, 15), r.int(1, 6), i % 2 ? c : U.shade(c, -0.2)); } };
+  PR.anubis = { w: 26, h: 46, ax: 13, ay: 43, box: [-9, -6, 18, 6], draw(P) { const c = '#2a2a34', g = '#c8a040'; P.rect(2, 36, 22, 8, '#8a6a3a'); P.rect(2, 36, 22, 1, '#b08a4a'); P.rect(7, 16, 12, 20, c); P.rect(9, 20, 8, 3, g); P.rect(8, 8, 10, 9, c); P.rect(15, 11, 6, 3, c); P.rect(8, 2, 2, 7, c); P.rect(14, 2, 2, 7, c); P.px(13, 11, g); P.rect(7, 24, 2, 10, g); P.rect(17, 24, 2, 10, g); } };
+  PR.citpillar = { w: 18, h: 46, ax: 9, ay: 43, box: [-7, -5, 14, 5], light: { r: 34, color: '#b060ff', flicker: 0.12 }, draw(P) { const c = '#1e1a28'; P.rect(1, 38, 16, 6, '#14101a'); P.rect(3, 6, 12, 32, c); P.rect(3, 6, 2, 32, '#3a3448'); P.rect(13, 6, 2, 32, '#100c16'); P.rect(1, 2, 16, 5, '#2a2436'); for (let y = 12; y < 36; y += 8) { P.rect(8, y, 2, 4, '#9040e0'); P.px(8, y + 1, '#e0b0ff'); } } };
+  PR.cage = { w: 22, h: 30, ax: 11, ay: 27, box: [-8, -4, 16, 4], draw(P, r) { P.rect(3, 6, 16, 2, '#4a4a52'); P.rect(3, 26, 16, 2, '#4a4a52'); for (let x = 3; x < 20; x += 3) P.rect(x, 6, 1, 20, '#5a5a64'); P.rect(10, 0, 2, 6, '#4a4a52'); if (r.chance(0.5)) { P.circle(10, 22, 2, '#e0d8c8'); P.rect(7, 24, 8, 2, '#d8d0c0'); } } };
+  PR.noticeboard = {
+    w: 34, h: 34, ax: 17, ay: 31, box: [-14, -4, 28, 4],
+    draw(P) {
+      P.rect(4, 12, 3, 20, '#5a3a1a'); P.rect(27, 12, 3, 20, '#5a3a1a');
+      P.rect(1, 3, 32, 20, '#8a5a30'); P.rect(1, 3, 32, 2, '#a8784a'); P.rect(3, 6, 28, 15, '#6a4424');
+      P.rect(5, 7, 8, 9, '#e8dcb0'); P.rect(6, 9, 6, 1, '#5a3a1a'); P.rect(6, 11, 5, 1, '#5a3a1a'); P.rect(8, 13, 2, 2, '#c03030');
+      P.rect(15, 8, 7, 11, '#f0e8d0'); P.circle(18, 11, 2, '#6a4a2a'); P.rect(16, 15, 5, 1, '#5a3a1a'); P.rect(16, 17, 4, 1, '#5a3a1a');
+      P.rect(24, 7, 6, 7, '#e0d0a0'); P.rect(25, 9, 4, 1, '#5a3a1a'); P.px(9, 7, '#c03030'); P.px(18, 8, '#3050c0'); P.px(27, 7, '#c03030');
+      P.rect(1, 1, 32, 2, '#6a3a1a');
+    },
+  };
+  PR.tomb_door = { w: 48, h: 40, ax: 24, ay: 37, box: null, draw(P) { const c = '#a8804c'; P.rect(2, 4, 44, 34, c); P.rect(2, 4, 44, 3, '#c8a060'); P.rect(10, 12, 28, 26, '#0e0a06'); P.rect(8, 10, 32, 3, '#e0c060'); P.rect(4, 8, 5, 30, '#9a7444'); P.rect(39, 8, 5, 30, '#9a7444'); P.circle(24, 7, 3, '#40c0ff'); } };
+  PR.cavemouth = {
+    w: 56, h: 40, ax: 28, ay: 37, box: null, variants: 3,
+    draw(P, r) {
+      const c = r.pick(['#6a6a72', '#7a6a5a', '#5a6272']);
+      P.ellipse(28, 24, 27, 16, U.shade(c, -0.25)); P.ellipse(28, 22, 26, 15, c);
+      P.ellipse(20, 14, 10, 5, U.shade(c, 0.2)); P.ellipse(38, 12, 8, 4, U.shade(c, 0.15));
+      P.ellipse(28, 30, 15, 11, '#0a080c'); P.rect(13, 30, 30, 8, '#0a080c');
+      for (let i = 0; i < 5; i++) { const x = 16 + i * 6; P.rect(x, 19, 2, r.int(3, 6), U.shade(c, -0.1)); }
+    },
+  };
+  PR.stairsdown = { w: 34, h: 26, ax: 17, ay: 23, box: null, draw(P) { P.rect(1, 2, 32, 22, '#3a3440'); for (let i = 0; i < 5; i++) { P.rect(3 + i, 4 + i * 4, 28 - i * 2, 3, U.shade('#6a6474', -i * 0.14)); P.rect(3 + i, 4 + i * 4, 28 - i * 2, 1, U.shade('#8a8494', -i * 0.14)); } P.rect(8, 22, 18, 2, '#0a080c'); } };
+  PR.lavapillar = { w: 20, h: 34, ax: 10, ay: 31, box: [-7, -4, 14, 4], light: { r: 40, color: '#ff6020', flicker: 0.2 }, draw(P, r) { const c = '#2a2024'; P.rect(3, 6, 14, 26, c); P.rect(3, 6, 2, 26, '#4a3a3a'); for (let i = 0; i < 4; i++) P.line(r.int(4, 15), r.int(8, 28), r.int(4, 15), r.int(8, 28), '#ff6020'); P.ellipse(10, 6, 7, 3, '#ff8030'); P.ellipse(10, 6, 4, 1, '#ffd060'); } };
+
   // Render a prop (cached by variant/frame).
   PR.sprite = function (id, variant, frame) {
     const p = PR[id];
