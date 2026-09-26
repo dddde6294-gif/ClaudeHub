@@ -106,11 +106,15 @@ Cloud sessions (Claude Code on the web) don't write transcripts to your computer
 --range <spec>          Time range for --report: 1h, 24h, 7d, 30d, all
 ```
 
+## Emberfall
+
+The site also hosts **Emberfall**, a 2D action RPG, at <https://dddde6294-gif.github.io/ClaudeHub/rpg/>. It lives in [`rpg/`](rpg/) and also runs as an Electron desktop app; see [rpg/README.md](rpg/README.md).
+
 ## Development
 
 ```sh
 npm test               # node --test
-npm run build:pages    # writes the static site to _site/
+npm run build:pages    # writes the static site (dashboard + rpg/) to _site/
 ```
 
 - `lib/scanner.js`: incremental transcript reader

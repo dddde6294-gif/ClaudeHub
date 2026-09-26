@@ -2,7 +2,8 @@
 'use strict';
 
 // Builds the static site for GitHub Pages: the dashboard page plus a demo dataset
-// it shows until the visitor pairs it with a ClaudeHub running on their computer.
+// it shows until the visitor pairs it with a ClaudeHub running on their computer,
+// and the Emberfall game under /rpg/.
 // Nothing here reads real transcripts.
 
 const fs = require('fs');
@@ -35,6 +36,8 @@ function main(outDir) {
     fs.mkdirSync(out, { recursive: true });
     fs.copyFileSync(path.join(__dirname, '..', 'public', 'index.html'), path.join(out, 'index.html'));
     fs.writeFileSync(path.join(out, 'demo.json'), JSON.stringify({ now, stats, chats }));
+    // Emberfall, the browser RPG, is published as a sub-site at /rpg/.
+    fs.cpSync(path.join(__dirname, '..', 'rpg', 'web'), path.join(out, 'rpg'), { recursive: true });
     console.log(`Wrote ${out}`);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
