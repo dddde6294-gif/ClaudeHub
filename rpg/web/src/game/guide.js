@@ -14,7 +14,10 @@
     const W = R.World;
     const here = fn(W.map);
     if (here) return Object.assign({ map: W.map.id }, here);
-    for (const M of maps()) { if (M.id === W.map.id) continue; const r = fn(M); if (r) return Object.assign({ map: M.id }, r); }
+    // maps you can walk to right now come first, locked-off ones last
+    const reach = reachable();
+    const others = maps().filter((M) => M.id !== W.map.id).sort((a, b) => (reach.has(b.id) ? 1 : 0) - (reach.has(a.id) ? 1 : 0));
+    for (const M of others) { const r = fn(M); if (r) return Object.assign({ map: M.id }, r); }
     return null;
   }
   const nearest = (list) => {
@@ -83,6 +86,12 @@
     return null;
   }
 
+  function reachable() {
+    const seen = new Set([R.World.map.id]), queue = [R.World.map.id];
+    while (queue.length) for (const x of R.World.buildMap(queue.shift()).exits) if (R.Maps[x.to] && !seen.has(x.to) && !(x.requires && !x.requires())) { seen.add(x.to); queue.push(x.to); }
+    return seen;
+  }
+
   // Next exit on the current map along the shortest route to map `to`.
   function routeExit(to) {
     const W = R.World;
@@ -92,7 +101,7 @@
     while (queue.length) {
       const id = queue.shift();
       if (id === to) break;
-      for (const x of R.World.buildMap(id).exits) if (R.Maps[x.to] && !(x.to in prev)) { prev[x.to] = { from: id, exit: x }; queue.push(x.to); }
+      for (const x of R.World.buildMap(id).exits) if (R.Maps[x.to] && !(x.to in prev) && !(x.requires && !x.requires())) { prev[x.to] = { from: id, exit: x }; queue.push(x.to); }
     }
     if (!(to in prev)) return null;
     let step = prev[to];

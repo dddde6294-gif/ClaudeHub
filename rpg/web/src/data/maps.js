@@ -95,7 +95,7 @@
       M.npc('board', 34, 17);
       // exits
       M.exit(59, 19, 1, 5, 'forest', 'west');
-      M.exit(28, 0, 5, 1, 'peaks', 'south', { requires: () => done('main_6'), locked: 'Captain Garrick: "The Frostfang pass is sealed by the Elder\'s order."' });
+      M.exit(28, 0, 5, 1, 'peaks', 'south', { requires: () => done('main_6'), locked: 'The Frostfang gate is sealed. It opens after the main quest "The Sand King" (defeat Anhotep in the desert).' });
       M.point('start', 30, 24);
       M.point('east', 56, 21);
       M.point('north', 30, 5);
@@ -176,7 +176,7 @@
       M.spawn('goblin_shaman', 78, 16, { count: 1, radius: 2, level: 4 });
       // exits
       M.exit(0, 33, 1, 6, 'town', 'east');
-      M.exit(95, 33, 1, 6, 'marsh', 'west', { requires: () => done('main_2'), locked: 'Thorny brambles block the swamp road. (Defeat the Slime King first.)' });
+      M.exit(95, 33, 1, 6, 'marsh', 'west', { requires: () => done('main_2'), locked: 'Thorny brambles block the swamp road. It opens after the main quest "The Slime King".' });
       M.point('west', 2, 36);
       M.point('east', 92, 36);
     },
@@ -304,7 +304,7 @@
       M.spawn('bog_zombie', 50, 68, { count: 3, radius: 4, level: 7 });
       M.spawn('swamp_frog', 20, 60, { count: 3, radius: 4, level: 6 });
       M.exit(0, 37, 1, 6, 'forest', 'east');
-      M.exit(45, 79, 7, 1, 'oasis', 'north', { requires: () => done('main_4'), locked: 'Warden Osric: "The south road is overrun. Deal with the Broodmother first."' });
+      M.exit(45, 79, 7, 1, 'oasis', 'north', { requires: () => done('main_4'), locked: 'The south road is overrun. It opens after the main quest "Mother of Spiders" (defeat the Broodmother).' });
       M.point('west', 2, 40);
       M.point('south', 48, 76);
     },
@@ -510,7 +510,7 @@
       M.spawn('ice_golem', 30, 22, { count: 2, radius: 3, level: 16 });
       M.spawn('yeti', 84, 70, { count: 2, radius: 3, level: 16 });
       M.exit(45, 87, 7, 1, 'town', 'north');
-      M.exit(95, 39, 1, 7, 'volcano', 'west', { requires: () => done('main_7'), locked: "A wall of Skaldr's enchanted ice seals the pass east." });
+      M.exit(95, 39, 1, 7, 'volcano', 'west', { requires: () => done('main_7'), locked: 'Enchanted ice seals the pass east. It melts after the main quest "Frostfang" (defeat Skaldr).' });
       M.point('south', 48, 84);
       M.point('east', 90, 42);
     },
@@ -599,7 +599,7 @@
       M.spawn('fire_imp', 84, 30, { count: 4, radius: 4, level: 19 });
       M.spawn('hellhound', 40, 76, { count: 3, radius: 4, level: 20 });
       M.exit(0, 41, 1, 7, 'peaks', 'east');
-      M.exit(45, 0, 7, 1, 'citadel', 'entrance', { requires: () => done('main_9'), locked: 'A wall of black flame bars the Citadel road. Only the Ember Crown can part it.' });
+      M.exit(45, 0, 7, 1, 'citadel', 'entrance', { requires: () => done('main_9'), locked: 'Black flame bars the Citadel road. Only the Ember Crown can part it (main quest "The Ember Crown").' });
       M.point('west', 3, 44);
       M.point('citadel', 48, 4);
     },
