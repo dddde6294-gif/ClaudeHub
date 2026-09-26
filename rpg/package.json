@@ -1,0 +1,28 @@
+{
+  "name": "emberfall",
+  "productName": "Emberfall",
+  "version": "1.0.0",
+  "description": "Emberfall: Legends of the Shattered Crown — a 2D action RPG",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "io.github.dddde6294.emberfall",
+    "productName": "Emberfall",
+    "files": ["main.js", "preload.js", "web/**/*"],
+    "directories": { "output": "dist" },
+    "win": { "target": "nsis" },
+    "mac": { "target": "dmg", "category": "public.app-category.role-playing-games" },
+    "linux": { "target": "AppImage", "category": "Game" }
+  }
+}
