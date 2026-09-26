@@ -504,9 +504,9 @@
     build(m, arg) {
       const body = UI.frame(m, 'Controls', 'controls-frame');
       const rows = [
-        ['Move', 'W A S D / Arrow keys'], ['Aim', 'Mouse'], ['Attack', 'Left click (hold) / J'], ['Dodge roll', 'Space / Shift'], ['Skills', '1 2 3 4'],
+        ['Move', 'W A S D / Arrow keys'], ['Aim', 'Mouse'], ['Attack', 'Left click (hold) / J'], ['Dodge roll (25 stamina)', 'Space'], ['Sprint (drains stamina)', 'Hold Shift'], ['Heavy attack (25 stamina)', 'Right click / U'], ['Skills', '1 2 3 4'],
         ['Health / Mana potion', 'Q / R'], ['Interact / Talk', 'E / F'], ['Inventory', 'I / Tab'], ['Character', 'C'], ['Skills', 'K'], ['Quest log', 'L'], ['Map', 'M'], ['Pause', 'Esc'],
-        ['Gamepad', 'Left stick move · Right stick aim · RT attack · A dodge · LB/RB/B/L3 skills · Y interact · D-pad potions'],
+        ['Gamepad', 'Left stick move · Right stick aim · RT attack · LT heavy attack · A dodge · R3 sprint · LB/RB/B/L3 skills · Y interact · D-pad potions'],
       ];
       const t = el('div', 'stat-table controls', null, body);
       for (const [a, b] of rows) el('div', 'stat-row', `<span>${a}</span><b>${b}</b>`, t);

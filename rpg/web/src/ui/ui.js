@@ -50,6 +50,7 @@
             <div class="hud-name" id="hud-name"></div>
             <div class="bar hp"><div class="fill" id="hp-fill"></div><div class="ghost" id="hp-ghost"></div><span id="hp-txt"></span></div>
             <div class="bar mp"><div class="fill" id="mp-fill"></div><span id="mp-txt"></span></div>
+            <div class="bar st" id="st-bar"><div class="fill" id="st-fill"></div></div>
             <div class="bar xp"><div class="fill" id="xp-fill"></div></div>
           </div>
         </div>
@@ -517,6 +518,11 @@
     set('hp-ghost', 'width', (hpGhost * 100).toFixed(1) + '%');
     set('hp-txt', 'text', Math.ceil(p.hp) + ' / ' + s.maxHp);
     set('mp-fill', 'width', (p.mp / s.maxMp * 100).toFixed(1) + '%');
+    const maxSt = p.maxStamina ? p.maxStamina() : 100;
+    set('st-fill', 'width', (Math.max(0, p.stamina) / maxSt * 100).toFixed(1) + '%');
+    if (UI.staminaFlash > 0) UI.staminaFlash -= dt;
+    const stb = document.getElementById('st-bar');
+    if (stb) { stb.classList.toggle('tired', !!p.tired || UI.staminaFlash > 0); stb.classList.toggle('full', p.stamina >= maxSt); }
     set('mp-txt', 'text', Math.floor(p.mp) + ' / ' + s.maxMp);
     const need = R.xpForLevel(p.level);
     set('xp-fill', 'width', (p.level >= R.MAX_LEVEL ? 100 : p.xp / need * 100).toFixed(1) + '%');

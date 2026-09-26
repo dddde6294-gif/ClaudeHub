@@ -18,7 +18,9 @@
     left: ['KeyA', 'ArrowLeft'],
     right: ['KeyD', 'ArrowRight'],
     attack: ['mouse0', 'KeyJ'],
-    dodge: ['Space', 'ShiftLeft'],
+    dodge: ['Space'],
+    sprint: ['ShiftLeft', 'ShiftRight'],
+    heavy: ['mouse2', 'KeyU'],
     interact: ['KeyE', 'KeyF'],
     skill1: ['Digit1'],
     skill2: ['Digit2'],
@@ -76,7 +78,7 @@
   };
 
   // ---- gamepad -------------------------------------------------------------
-  const PAD = { attack: [7, 2], dodge: [0, 6], interact: [3], skill1: [4], skill2: [5], skill3: [1], skill4: [10], potion: [12], manapotion: [13], inventory: [8], pause: [9], map: [15], quests: [14] };
+  const PAD = { attack: [7, 2], dodge: [0], heavy: [6], sprint: [11], interact: [3], skill1: [4], skill2: [5], skill3: [1], skill4: [10], potion: [12], manapotion: [13], inventory: [8], pause: [9], map: [15], quests: [14] };
   let padPrev = [];
   function padHeld(action) {
     const p = I.gamepad; if (!p || !PAD[action]) return false;

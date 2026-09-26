@@ -25,8 +25,10 @@ To play without Electron, open `rpg/web/index.html` in a browser.
 | Move | WASD or arrow keys | Left stick |
 | Aim | Mouse | Right stick |
 | Attack (hold for combos) | Left click or J | RT |
-| Dodge roll | Space or Shift | A |
-| Skills | 1–6 | LB, RB, B, L3 |
+| Heavy attack (costs stamina) | Right click or U | LT |
+| Dodge roll (costs stamina) | Space | A |
+| Sprint (drains stamina) | Hold Shift | R3 |
+| Skills | 1–4 | LB, RB, B, L3 |
 | Health / mana potion | Q / R | D-pad |
 | Talk, open, travel | E or F | Y |
 | Inventory | I or Tab | View |
