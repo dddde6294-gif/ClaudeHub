@@ -493,6 +493,7 @@
       toggle('Screen Shake', 'shake');
       toggle('Fancy Effects (glow, weather)', 'fancy');
       toggle('Autosave', 'autosave');
+      toggle('Quest Arrow', 'guide');
       toggle('Show FPS', 'showFps', (v) => document.getElementById('fps').classList.toggle('hidden', !v));
       if (isElectron()) toggle('Fullscreen', 'fullscreen', (v) => window.electronAPI.setFullscreen(v));
       UI.button(body, '← Back', () => UI.open(arg && arg.back ? arg.back : 'pause'));

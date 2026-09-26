@@ -590,6 +590,8 @@
     for (const x of M.exits) if (!x.hidden) dot(x.x + x.w / 2, x.y + x.h / 2, '#40c0ff', 4);
     for (const e of W.enemies) if (!e.dead) dot(e.x, e.y, e.boss ? '#ff40ff' : '#ff4040', e.boss ? 6 : 3);
     for (const n of W.npcs) { const m = R.QuestLog.markerFor(n.id); dot(n.x, n.y, m ? '#ffe040' : '#40ff80', m ? 5 : 3); }
+    const gt = R.Guide && R.Guide.cache;
+    if (gt && R.settings.guide !== false) { const on = Math.floor(performance.now() / 250) % 2; dot(gt.x, gt.y + 20, on ? '#ffd040' : '#fff4b0', 7); }
     const blink = Math.floor(performance.now() / 300) % 2;
     dot(p.x, p.y, blink ? '#ffffff' : '#ffe080', 4);
   };

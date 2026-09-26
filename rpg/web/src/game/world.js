@@ -490,6 +490,7 @@
     clampCam();
     FX.update(dt);
     updateWeather(dt);
+    if (R.Guide) R.Guide.update(dt);
   };
 
   function separate() {
@@ -667,6 +668,7 @@
     // lighting
     drawLighting(ctx, cx, cy);
     drawWeather(ctx);
+    if (R.Guide) R.Guide.draw(ctx, cx, cy);
     // screen flash
     if (FX.flashT > 0) { ctx.fillStyle = U.rgba(FX.flashC, 0.35 * FX.flashT / FX.flashMax); ctx.fillRect(0, 0, G.W, G.H); }
     // low-hp vignette
