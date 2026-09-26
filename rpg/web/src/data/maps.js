@@ -95,6 +95,7 @@
       M.npc('board', 34, 17);
       // exits
       M.exit(59, 19, 1, 5, 'forest', 'west');
+      M.exit(28, 0, 5, 1, 'peaks', 'south', { requires: () => done('main_6'), locked: 'Captain Garrick: "The Frostfang pass is sealed by the Elder\'s order."' });
       M.point('start', 30, 24);
       M.point('east', 56, 21);
       M.point('north', 30, 5);
@@ -303,6 +304,7 @@
       M.spawn('bog_zombie', 50, 68, { count: 3, radius: 4, level: 7 });
       M.spawn('swamp_frog', 20, 60, { count: 3, radius: 4, level: 6 });
       M.exit(0, 37, 1, 6, 'forest', 'east');
+      M.exit(45, 79, 7, 1, 'oasis', 'north', { requires: () => done('main_4'), locked: 'Warden Osric: "The south road is overrun. Deal with the Broodmother first."' });
       M.point('west', 2, 40);
       M.point('south', 48, 76);
     },
@@ -337,6 +339,308 @@
       M.chest('den_2', 47, 41, { loot: ['potion', 'ether_small'], gold: 120, tier: 'iron' });
       M.exit(23, 51, 7, 1, 'marsh', 'den');
       M.point('south', 26, 48);
+    },
+  });
+
+  // ================================================================ Oasis of Saffar
+  add('oasis', {
+    name: 'Oasis of Saffar', subtitle: 'A haven in the sands', w: 56, h: 44, level: 9, music: 'town', safe: true, outdoor: true, dustColor: '#c8a870',
+    weather: 'sand',
+    build(M) {
+      M.fill('sand');
+      M.noiseFill(0.12, (n) => (n > 0.66 ? 'dune' : null));
+      M.border('sandcliff', 2, [[25, 0, 7, 2], [54, 19, 2, 7]]);
+      M.path([[28, 0], [28, 12]], 'sandstone', 3);
+      M.path([[36, 22], [56, 22]], 'sandstone', 3);
+      M.circle(28, 22, 7.4, 'grass', 1.5);
+      M.circle(28, 22, 5.6, 'shallow', 1.2);
+      M.circle(28, 22, 4.2, 'water', 1);
+      M.rect(15, 10, 8, 6, 'sandstone');
+      M.prop('pavilion', 16, 11);
+      M.prop('tent', 40, 12, 0); M.prop('tent', 46, 31, 1); M.prop('tent', 12, 32, 0);
+      M.prop('stall', 38, 30, 2); M.prop('stall', 20, 34, 0);
+      M.prop('well', 44, 20); M.prop('cart', 48, 14); M.prop('crate', 44, 14); M.prop('barrel', 45, 15);
+      M.prop('obelisk', 23, 9); M.prop('obelisk', 33, 9);
+      for (const [x, y] of [[22, 16], [34, 16], [22, 28], [34, 28], [20, 22], [36, 20]]) M.prop('palm', x, y);
+      M.prop('lamp', 25, 12); M.prop('lamp', 31, 12);
+      K.campsite(M, 30, 34);
+      M.waypoint('oasis', 38, 25, 'Oasis of Saffar');
+      M.npc('amira', 17, 13); M.npc('hassan', 38, 32); M.npc('zafir', 20, 36); M.npc('rashid', 50, 22); M.npc('layla', 26, 30);
+      M.reserve(12, 8, 38, 30);
+      K.keepTiles(M, ['sandstone']);
+      M.scatter('palm', 10, { on: ['sand', 'dune'], minDist: 3 });
+      M.scatter('cactus', 10, { on: ['sand', 'dune'], minDist: 2 });
+      M.scatter('dunebush', 14, { on: ['sand', 'dune'] });
+      M.scatter('lily', 3, { on: ['water'] });
+      M.exit(25, 0, 7, 1, 'marsh', 'south');
+      M.exit(55, 19, 1, 7, 'desert', 'west');
+      M.point('north', 28, 3);
+      M.point('east', 52, 22);
+      M.point('start', 28, 32);
+    },
+  });
+
+  // ================================================================ Sunscorch Dunes
+  add('desert', {
+    name: 'Sunscorch Dunes', subtitle: 'Level 9-12', w: 104, h: 80, level: 10, music: 'field', outdoor: true, dustColor: '#c8a870',
+    weather: 'sand', tint: 'rgba(255,190,90,0.07)',
+    build(M) {
+      M.fill('sand');
+      M.noiseFill(0.07, (n) => (n > 0.62 ? 'dune' : null));
+      M.noiseFill(0.11, (n, x, y) => (n > 0.8 ? 'sandcliff' : null));
+      M.border('sandcliff', 2, [[0, 37, 2, 7]]);
+      // trails
+      M.path([[0, 40], [30, 40], [56, 44], [80, 26]], 'path', 2, 3);
+      M.path([[30, 40], [24, 60]], 'path', 2, 3);
+      M.path([[30, 40], [40, 20]], 'path', 2, 3);
+      M.path([[56, 44], [64, 64]], 'path', 2, 3);
+      // pyramid & tomb entrance
+      M.rect(68, 8, 26, 18, 'sandstone');
+      M.prop('pyramid', 80, 21);
+      M.prop('obelisk', 72, 25); M.prop('obelisk', 88, 25); M.prop('anubis', 75, 24); M.prop('anubis', 85, 24);
+      M.exit(78, 22, 5, 1, 'tomb', 'entrance', { label: 'Enter the Tomb of Anhotep', prompt: true, color: '#ffd040', requires: () => has('sun_key') || R.World.flags['boss:pharaoh'], locked: 'A great sun-shaped lock seals the tomb. You need the Sun Key.' });
+      M.point('tomb', 80, 25);
+      // bandit camp (SW)
+      M.rect(16, 56, 16, 12, 'dirt');
+      M.prop('tent', 19, 59, 0); M.prop('tent', 28, 59, 1); M.prop('campfire', 24, 63); M.prop('crate', 17, 66); M.prop('crate', 30, 66); M.prop('cart', 22, 67); M.prop('cage', 31, 62);
+      M.chest('sun_key_chest', 24, 58, { loot: ['sun_key', 'potion'], gold: 120, tier: 'gold' });
+      // ruined city (centre)
+      M.rect(50, 44, 18, 14, 'sandstone');
+      for (const [x, y] of [[52, 46], [56, 46], [60, 46], [64, 46], [52, 55], [64, 55]]) M.prop('sandcolumn', x, y);
+      M.prop('obelisk', 58, 51); M.prop('ruinwall', 54, 57); M.prop('ruinwall', 62, 49); M.prop('urn', 55, 50); M.prop('urn', 61, 53);
+      M.chest('desert_1', 66, 57, { loot: ['potion', 'potion'], gold: 140, tier: 'iron' });
+      M.npc('pell', 57, 53);
+      // wrecked caravan (north)
+      M.rect(36, 14, 12, 8, 'dune');
+      M.prop('cart', 39, 17, 1); M.prop('cart', 45, 19, 0); M.prop('crate', 42, 15); M.prop('barrel', 37, 20); M.prop('ribcage', 44, 16); M.prop('skull', 40, 20);
+      M.zone('Wrecked Caravan', 42, 18, 5);
+      M.chest('caravan_ledger', 47, 15, { loot: ['caravan_ledger'], gold: 50 });
+      M.waypoint('desert', 10, 38, 'Dune Road');
+      K.keepTiles(M, ['path', 'sandstone', 'dirt']);
+      M.reserve(68, 8, 26, 20);
+      M.scatter('cactus', 50, { on: ['sand', 'dune'], minDist: 2.5 });
+      M.scatter('dunebush', 40, { on: ['sand', 'dune'] });
+      M.scatter('palm', 8, { on: ['sand'], minDist: 6 });
+      M.scatter('skull', 10, { on: ['sand', 'dune'] });
+      M.scatter('sandcolumn', 10, { on: ['sand'], minDist: 6 });
+      M.scatter('rock', 16, { on: ['sand', 'dune'] });
+      M.spawn('scorpion', 20, 30, { count: 4, radius: 4, level: 9 });
+      M.spawn('vulture', 42, 30, { count: 3, radius: 5, level: 9 });
+      M.spawn('desert_bandit', 24, 62, { count: 3, radius: 3, level: 10, elite: 0.2 });
+      M.spawn('bandit_archer', 28, 58, { count: 2, radius: 2, level: 10 });
+      M.spawn('sand_wraith', 58, 50, { count: 3, radius: 4, level: 11 });
+      M.spawn('mummy', 64, 46, { count: 2, radius: 3, level: 11 });
+      M.spawn('sand_worm', 80, 50, { count: 2, radius: 5, level: 12, elite: 0.2 });
+      M.spawn('scorpion', 88, 66, { count: 4, radius: 5, level: 11 });
+      M.spawn('vulture', 72, 34, { count: 3, radius: 4, level: 11 });
+      M.exit(0, 37, 1, 7, 'oasis', 'east');
+      M.point('west', 3, 40);
+    },
+  });
+
+  // ================================================================ Tomb of Anhotep
+  add('tomb', {
+    name: 'Tomb of Anhotep', subtitle: 'Level 11-13', w: 52, h: 56, level: 12, music: 'dungeon', dark: 0.85, ambient: '#0a0604', playerLight: 95, dustColor: '#6a5234',
+    build(M) {
+      M.fill('sandwall');
+      K.rooms(M, 'tombfloor', [[20, 44, 13, 12], [21, 28, 11, 16], [4, 26, 13, 12], [35, 26, 13, 12], [14, 3, 25, 18]]);
+      K.halls(M, 'tombfloor', [[[16, 32], [21, 32]], [[31, 32], [36, 32]], [[26, 28], [26, 20]], [[10, 26], [10, 14], [15, 14]]], 3);
+      M.waypoint('tomb', 30, 50, 'Tomb Antechamber');
+      M.prop('anubis', 21, 45); M.prop('anubis', 31, 45); M.prop('torch', 22, 53); M.prop('torch', 30, 53);
+      for (let y = 30; y < 43; y += 4) { M.prop('torch', 22, y); M.prop('torch', 30, y); }
+      // treasuries
+      M.prop('goldpile', 7, 29); M.prop('goldpile', 13, 34); M.prop('urn', 5, 35); M.prop('urn', 15, 27); M.prop('sarcophagus', 10, 30, 1);
+      M.chest('tomb_1', 6, 31, { loot: ['potion', 'potion'], gold: 180, tier: 'gold' });
+      M.prop('sarcophagus', 38, 30, 0); M.prop('sarcophagus', 42, 30, 0); M.prop('sarcophagus', 46, 30, 0); M.prop('urn', 37, 36); M.prop('torch', 41, 27);
+      M.chest('tomb_2', 45, 35, { loot: ['potion', 'ether_small'], gold: 160, tier: 'iron' });
+      // throne hall
+      for (const x of [17, 22, 30, 35]) { M.prop('sandcolumn', x, 8, 0); M.prop('sandcolumn', x, 17, 0); }
+      M.prop('throne', 26, 5); M.prop('brazier', 19, 12); M.prop('brazier', 33, 12); M.prop('goldpile', 16, 4); M.prop('goldpile', 37, 4);
+      M.boss('pharaoh', 26, 10);
+      M.spawn('mummy', 26, 36, { count: 3, radius: 3, level: 11 });
+      M.spawn('scarab', 10, 32, { count: 5, radius: 3, level: 11 });
+      M.spawn('tomb_guardian', 41, 33, { count: 2, radius: 2, level: 12, elite: 0.2 });
+      M.spawn('cursed_priest', 26, 24, { count: 2, radius: 2, level: 12 });
+      M.spawn('scarab', 12, 16, { count: 4, radius: 2, level: 12 });
+      M.exit(22, 55, 9, 1, 'desert', 'tomb');
+      M.point('entrance', 26, 51);
+    },
+  });
+
+  // ================================================================ Frostfang Peaks
+  add('peaks', {
+    name: 'Frostfang Peaks', subtitle: 'Level 13-16', w: 96, h: 88, level: 14, music: 'field', outdoor: true, dustColor: '#c8d2e0',
+    weather: 'snow', tint: 'rgba(120,160,220,0.1)',
+    build(M) {
+      M.fill('snow');
+      M.noiseFill(0.1, (n, x, y) => (n > 0.79 ? 'snowcliff' : n < 0.26 ? 'ice' : null));
+      M.border('snowcliff', 2, [[45, 86, 7, 2], [94, 39, 2, 7]]);
+      M.circle(58, 48, 10, 'frozenlake', 3);
+      M.path([[48, 88], [48, 70], [40, 50], [22, 16]], 'snowpath', 3, 3);
+      M.path([[48, 70], [70, 60], [96, 42]], 'snowpath', 3, 3);
+      M.path([[40, 50], [60, 28], [80, 18]], 'snowpath', 2, 3);
+      // ice cavern mouth (NW)
+      M.rect(16, 8, 12, 8, 'snowpath');
+      M.prop('cavemouth', 22, 11, 2); M.prop('icespike', 16, 12); M.prop('icespike', 28, 11); M.prop('frozenknight', 18, 14);
+      M.exit(20, 10, 5, 2, 'ice_cavern', 'entrance', { label: 'Enter the Frozen Hollow', prompt: true, color: '#a0e0ff' });
+      M.point('cavern', 22, 15);
+      // Frostfang camp
+      M.rect(40, 66, 16, 10, 'snowpath');
+      M.prop('tent', 43, 69, 0); M.prop('tent', 53, 69, 1); K.campsite(M, 48, 72); M.prop('cart', 43, 74); M.prop('snowman', 55, 74);
+      M.waypoint('peaks', 51, 76, 'Frostfang Camp');
+      M.npc('yrsa', 46, 71); M.npc('bjorn', 52, 73);
+      // the frozen pass east (sealed by Skaldr's ice)
+      for (let y = 39; y < 46; y += 2) M.prop('icespike', 91, y);
+      M.prop('frozenknight', 88, 38); M.prop('frozenknight', 88, 46);
+      // harpy crags & yeti hollow
+      M.prop('snowrock', 78, 16); M.prop('snowrock', 82, 20); M.prop('skullpile', 80, 18);
+      M.chest('peaks_1', 82, 16, { loot: ['potion', 'potion'], gold: 200, tier: 'iron' });
+      M.chest('peaks_2', 70, 80, { loot: ['potion', 'ether_small'], gold: 180 });
+      K.keepTiles(M, ['snowpath']);
+      M.reserve(38, 64, 20, 14);
+      M.scatter('snowpine', 150, { on: ['snow'], minDist: 2 });
+      M.scatter('snowrock', 30, { on: ['snow'] });
+      M.scatter('icecrystal', 16, { on: ['snow', 'ice'], minDist: 5 });
+      M.scatter('icespike', 16, { on: ['ice', 'frozenlake'], minDist: 4 });
+      M.spawn('ice_wolf', 40, 56, { count: 4, radius: 4, level: 13 });
+      M.spawn('ice_wolf', 70, 62, { count: 3, radius: 4, level: 14, elite: 0.15 });
+      M.spawn('yeti', 20, 40, { count: 2, radius: 3, level: 15, elite: 0.2 });
+      M.spawn('snow_harpy', 78, 20, { count: 4, radius: 4, level: 14 });
+      M.spawn('frost_wraith', 58, 46, { count: 3, radius: 5, level: 15 });
+      M.spawn('ice_golem', 30, 22, { count: 2, radius: 3, level: 16 });
+      M.spawn('yeti', 84, 70, { count: 2, radius: 3, level: 16 });
+      M.exit(45, 87, 7, 1, 'town', 'north');
+      M.exit(95, 39, 1, 7, 'volcano', 'west', { requires: () => done('main_7'), locked: "A wall of Skaldr's enchanted ice seals the pass east." });
+      M.point('south', 48, 84);
+      M.point('east', 90, 42);
+    },
+  });
+
+  // ================================================================ Frozen Hollow
+  add('ice_cavern', {
+    name: 'Frozen Hollow', subtitle: 'Level 15-17', w: 52, h: 52, level: 16, music: 'dungeon', dark: 0.7, ambient: '#040a14', playerLight: 110, dustColor: '#7aa8c8',
+    weather: 'snow',
+    build(M) {
+      M.fill('icewall');
+      M.noiseFill(0.13, (n, x, y) => (n > 0.5 && x > 2 && y > 2 && x < M.w - 3 && y < M.h - 3 ? 'icefloor' : null));
+      K.halls(M, 'icefloor', [[[26, 51], [26, 40], [12, 30], [14, 16], [26, 10]], [[26, 40], [40, 30], [38, 16], [26, 10]]], 3);
+      M.circle(26, 10, 8, 'icefloor', 1.5);
+      M.circle(26, 30, 6, 'frozenlake', 1.5);
+      M.path([[26, 40], [26, 24]], 'icefloor', 3);
+      M.circle(12, 30, 4, 'icefloor', 1); M.circle(40, 30, 4, 'icefloor', 1);
+      M.rect(23, 44, 7, 8, 'icefloor');
+      M.waypoint('ice_cavern', 28, 46, 'Hollow Mouth');
+      M.prop('torch', 23, 47); M.prop('torch', 30, 47);
+      M.scatter('icecrystal', 20, { on: ['icefloor'], minDist: 3 });
+      M.scatter('icespike', 20, { on: ['icefloor'], minDist: 2 });
+      M.scatter('frozenknight', 4, { on: ['icefloor'], minDist: 8 });
+      M.scatter('bones', 8, { on: ['icefloor'] });
+      M.boss('frost_wyrm', 26, 9);
+      M.spawn('ice_bat', 12, 30, { count: 4, radius: 3, level: 15, respawn: 80 });
+      M.spawn('frost_wraith', 40, 30, { count: 2, radius: 3, level: 16, respawn: 90 });
+      M.spawn('ice_golem', 26, 24, { count: 2, radius: 3, level: 16, elite: 0.2 });
+      M.spawn('ice_bat', 36, 16, { count: 4, radius: 3, level: 16 });
+      M.chest('ice_1', 12, 31, { loot: ['potion', 'potion'], gold: 220, tier: 'iron' });
+      M.chest('ice_2', 41, 31, { loot: ['potion', 'ether_small'], gold: 240, tier: 'gold' });
+      M.exit(23, 51, 7, 1, 'peaks', 'cavern');
+      M.point('entrance', 26, 48);
+    },
+  });
+
+  // ================================================================ Emberdeep Caldera
+  add('volcano', {
+    name: 'Emberdeep Caldera', subtitle: 'Level 17-21', w: 96, h: 88, level: 19, music: 'dungeon', outdoor: true, dark: 0.35, ambient: '#200808', playerLight: 130, dustColor: '#4a4040',
+    weather: 'embers', tint: 'rgba(255,80,20,0.08)',
+    build(M) {
+      M.fill('volcrock');
+      M.noiseFill(0.12, (n) => (n > 0.66 ? 'lavacrack' : n < 0.28 ? 'ash' : null));
+      M.noiseFill(0.1, (n, x, y) => (n > 0.82 ? 'volcwall' : null));
+      M.border('volcwall', 2, [[0, 41, 2, 7], [45, 0, 7, 2]]);
+      // lava rivers
+      M.path([[20, 0], [26, 30], [18, 60], [28, 88]], 'lava', 4, 5);
+      M.path([[96, 70], [70, 60], [60, 88]], 'lava', 3, 4);
+      // caldera arena with lava moat
+      M.circle(52, 38, 13, 'lava', 1);
+      M.circle(52, 38, 10, 'ash', 1);
+      // trails & bridges
+      M.path([[0, 44], [36, 44], [52, 38], [48, 0]], 'volcrock', 3, 2);
+      M.path([[36, 44], [30, 70], [16, 72]], 'volcrock', 3, 2);
+      M.path([[52, 38], [78, 62]], 'volcrock', 3, 2);
+      for (const [x, y, w, h] of [[20, 42, 12, 5], [39, 40, 5, 5], [62, 40, 3, 3], [48, 24, 6, 4], [16, 69, 14, 5], [66, 56, 8, 6]]) M.rect(x, y, w, h, 'stonebridge');
+      M.path([[36, 44], [42, 42]], 'stonebridge', 3); M.path([[52, 27], [50, 21]], 'stonebridge', 3); M.path([[60, 45], [66, 52]], 'stonebridge', 3);
+      // lights along the lava
+      for (let y = 4; y < M.h; y += 8) for (let x = 2; x < M.w; x += 8) if (M.get(x, y) === 'lava') M.light(x, y, 70, '#ff6020', 0.15);
+      M.prop('altar', 52, 33); M.prop('lavapillar', 44, 32); M.prop('lavapillar', 60, 32); M.prop('lavapillar', 44, 44); M.prop('lavapillar', 60, 44);
+      M.boss('infernal', 52, 38);
+      // dwarf camp (SW)
+      M.rect(8, 66, 12, 10, 'ash');
+      K.campsite(M, 12, 70); M.prop('tent', 10, 67, 1); M.prop('forge', 16, 67); M.prop('anvil', 18, 70);
+      M.npc('durgan', 15, 72);
+      M.waypoint('volcano', 8, 44, 'Caldera Rim');
+      // cultist camp (SE)
+      M.rect(74, 60, 14, 10, 'ash');
+      M.prop('warbanner', 76, 61); M.prop('warbanner', 86, 61); M.prop('rune', 81, 65); M.prop('cage', 78, 67); M.prop('brazier', 84, 67);
+      M.chest('volcano_1', 86, 68, { loot: ['potion', 'potion', 'ether_small'], gold: 300, tier: 'iron' });
+      M.chest('volcano_2', 90, 8, { loot: ['potion', 'potion'], gold: 260, tier: 'gold' });
+      // citadel road (north)
+      M.prop('obspike', 44, 4); M.prop('obspike', 53, 4); M.prop('warbanner', 45, 2); M.prop('warbanner', 52, 2);
+      K.keepTiles(M, ['stonebridge']);
+      M.reserve(38, 25, 28, 28);
+      M.scatter('charredtree', 40, { on: ['volcrock', 'ash'], minDist: 3 });
+      M.scatter('obspike', 30, { on: ['volcrock', 'ash', 'lavacrack'], minDist: 3 });
+      M.scatter('vent', 16, { on: ['volcrock', 'lavacrack'], minDist: 5 });
+      M.scatter('lavarock', 30, { on: ['volcrock', 'lavacrack'] });
+      M.scatter('bones', 12, { on: ['ash'] });
+      M.spawn('fire_imp', 34, 20, { count: 4, radius: 4, level: 17 });
+      M.spawn('salamander', 30, 56, { count: 3, radius: 4, level: 18 });
+      M.spawn('magma_golem', 70, 22, { count: 2, radius: 3, level: 19, elite: 0.2 });
+      M.spawn('hellhound', 76, 44, { count: 3, radius: 4, level: 19 });
+      M.spawn('ember_cultist', 80, 64, { count: 4, radius: 3, level: 20, elite: 0.2 });
+      M.spawn('fire_imp', 84, 30, { count: 4, radius: 4, level: 19 });
+      M.spawn('hellhound', 40, 76, { count: 3, radius: 4, level: 20 });
+      M.exit(0, 41, 1, 7, 'peaks', 'east');
+      M.exit(45, 0, 7, 1, 'citadel', 'entrance', { requires: () => done('main_9'), locked: 'A wall of black flame bars the Citadel road. Only the Ember Crown can part it.' });
+      M.point('west', 3, 44);
+      M.point('citadel', 48, 4);
+    },
+  });
+
+  // ================================================================ Obsidian Citadel
+  add('citadel', {
+    name: 'Obsidian Citadel', subtitle: 'Level 21-25', w: 60, h: 72, level: 23, music: 'dungeon', dark: 0.82, ambient: '#08040e', playerLight: 110, dustColor: '#2a2436',
+    weather: 'ash',
+    build(M) {
+      M.fill('citwall');
+      K.rooms(M, 'citfloor', [[24, 60, 13, 12], [22, 36, 17, 24], [4, 38, 14, 14], [43, 38, 14, 14], [4, 16, 14, 14], [43, 16, 14, 14], [14, 2, 33, 18]]);
+      K.halls(M, 'citfloor', [[[18, 44], [22, 44]], [[38, 44], [43, 44]], [[10, 38], [10, 30]], [[50, 38], [50, 30]], [[17, 22], [22, 18]], [[43, 22], [38, 18]], [[30, 36], [30, 20]]], 3);
+      M.rect(29, 20, 3, 50, 'royalcarpet');
+      M.waypoint('citadel', 34, 66, 'Citadel Gate');
+      M.prop('warbanner', 25, 61); M.prop('warbanner', 35, 61); M.prop('brazier', 26, 68); M.prop('brazier', 34, 68);
+      for (let y = 38; y < 60; y += 6) { M.prop('citpillar', 24, y); M.prop('citpillar', 36, y); }
+      M.prop('gargoyle', 23, 36); M.prop('gargoyle', 37, 36);
+      // wings
+      M.prop('cage', 6, 40); M.prop('cage', 15, 40); M.prop('chains', 10, 39); M.prop('skullpile', 8, 49); M.prop('brazier', 11, 45);
+      M.prop('weaponrack', 47, 39); M.prop('armorstand', 53, 39); M.prop('brazier', 50, 45); M.prop('bedroll', 45, 48); M.prop('bedroll', 48, 48);
+      M.prop('rune', 11, 23); M.prop('bookshelf', 7, 17); M.prop('bookshelf', 14, 17); M.prop('candles', 6, 27);
+      M.prop('altar', 50, 22); M.prop('gargoyle', 45, 18); M.prop('gargoyle', 55, 18);
+      M.chest('citadel_1', 15, 49, { loot: ['potion', 'potion'], gold: 400, tier: 'iron' });
+      M.chest('citadel_2', 54, 49, { loot: ['potion', 'potion', 'ether_small'], gold: 400, tier: 'iron' });
+      M.chest('citadel_3', 15, 27, { loot: ['potion', 'potion', 'potion'], gold: 500, tier: 'gold' });
+      // throne room
+      M.prop('throne', 30, 5);
+      for (const x of [17, 23, 37, 43]) { M.prop('citpillar', x, 6); M.prop('citpillar', x, 15); }
+      M.prop('brazier', 20, 10); M.prop('brazier', 40, 10); M.prop('warbanner', 26, 3); M.prop('warbanner', 34, 3);
+      M.boss('hollow_king', 30, 10);
+      M.spawn('hollow_soldier', 30, 52, { count: 4, radius: 4, level: 21 });
+      M.spawn('dark_knight', 30, 42, { count: 2, radius: 3, level: 22, elite: 0.2 });
+      M.spawn('gargoyle', 10, 44, { count: 2, radius: 3, level: 22 });
+      M.spawn('shadow_wraith', 50, 44, { count: 3, radius: 3, level: 22 });
+      M.spawn('necromancer', 10, 22, { count: 1, radius: 2, level: 23 });
+      M.spawn('hollow_soldier', 10, 24, { count: 3, radius: 3, level: 23 });
+      M.spawn('dark_knight', 50, 24, { count: 2, radius: 3, level: 23, elite: 0.3 });
+      M.spawn('shadow_wraith', 30, 26, { count: 2, radius: 3, level: 24 });
+      M.exit(24, 71, 13, 1, 'volcano', 'citadel');
+      M.point('entrance', 30, 68);
     },
   });
 })(window.RPG);

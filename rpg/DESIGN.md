@@ -1,6 +1,6 @@
 # Emberfall — design plan
 
-> **Chapter One (shipped):** `town`, `forest`, `grotto`, `crypt`, `marsh`, `spider_den` — bosses Gloopus, Mortis and Vexa, main quests `main_1`–`main_4`, ten side quests (see `web/src/data/content.js`). The later zones below are the plan for future chapters; their enemies already exist in `data/enemies.js`.
+> **Shipped:** all 13 zones below. Bosses use the three-phase kit in `web/src/data/content.js` (`R.BossKit`); the story is `main_1`–`main_10` in `quests.js`, `content.js` and `content2.js`.
 
 Shared content plan. Every content file must use the IDs listed here so the pieces fit together.
 
