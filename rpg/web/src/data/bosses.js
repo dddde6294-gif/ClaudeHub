@@ -11,7 +11,7 @@
   // Example boss. More live in this file.
   R.addEnemy({
     id: 'slime_king', name: 'Gloopus', title: 'The Slime King', boss: true, level: 4,
-    hp: 520, atk: 12, def: 3, spd: 36, xp: 180, gold: [60, 90], r: 16, height: 30, scale: 2.2,
+    hp: 1100, atk: 17, def: 4, spd: 40, xp: 260, gold: [60, 90], r: 16, height: 30, scale: 2.2,
     sprite: 'slime', pal: { main: '#40c070', crown: '#ffd040', core: '#e04060' }, knockResist: 0.9, immune: ['stun'],
     drops: [{ item: 'potion', chance: 1, qty: [2, 3] }, { item: 'travel_cape', chance: 1 }],
     tags: ['slime', 'boss'],
@@ -21,7 +21,7 @@
       R.World.combatT = 3;
       const m = e.mem;
       m.t = (m.t || 0) + dt;
-      const phase2 = e.hp < e.maxHp * 0.5;
+      const phase2 = e.hp < e.maxHp * 0.6;
       e.face = p.x > e.x ? 1 : -1;
       m.cd = (m.cd == null ? 1.5 : m.cd) - dt;
       if (m.act === 'jump') {
@@ -32,7 +32,7 @@
         e.z = Math.sin(k * Math.PI) * 60;
         e.anim = 'attack';
         if (k >= 1) {
-          e.z = 0; m.act = null; m.cd = phase2 ? 0.8 : 1.4;
+          e.z = 0; m.act = null; m.cd = phase2 ? 0.55 : 1.0;
           R.Combat.explode(e.x, e.y, 44, e.atk * 1.6, 'enemy', { color: '#60e080', colors: ['#60e080', '#a0ffb0', '#ffffff'], shake: 6, source: e });
           if (phase2) for (let i = 0; i < 10; i++) e.shoot(i / 10 * U.TAU, { speed: 90, color: '#60e080', dmg: e.atk * 0.7 });
         }
@@ -51,13 +51,13 @@
           const n = phase2 ? 7 : 5;
           for (let i = 0; i < n; i++) e.shoot(a + (i - (n - 1) / 2) * 0.22, { speed: 120, color: '#80ff60', size: 4, dmg: e.atk * 0.8, status: { slow: { amt: 0.4, dur: 1.5 } } });
           R.Audio.play('magic', { pitch: 0.5 });
-          m.cd = phase2 ? 1.0 : 1.6;
+          m.cd = phase2 ? 0.7 : 1.1;
         } else {
           // summon minions
           const n = phase2 ? 3 : 2;
           for (let i = 0; i < n; i++) R.World.spawnEnemy('slime', e.x + U.rand(-30, 30), e.y + U.rand(-20, 20), 3);
           FX.burst(e.x, e.y - 20, { n: 30, color: '#60e080', speed: 80, glow: true });
-          m.cd = 2.2;
+          m.cd = 1.6;
         }
       } else {
         e.moveToward(p.x, p.y, e.def.spd * sm * (phase2 ? 1.4 : 1), dt);

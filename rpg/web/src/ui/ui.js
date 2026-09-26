@@ -50,6 +50,7 @@
             <div class="hud-name" id="hud-name"></div>
             <div class="bar hp"><div class="fill" id="hp-fill"></div><div class="ghost" id="hp-ghost"></div><span id="hp-txt"></span></div>
             <div class="bar mp"><div class="fill" id="mp-fill"></div><span id="mp-txt"></span></div>
+            <div class="bar st" id="st-bar"><div class="fill" id="st-fill"></div></div>
             <div class="bar xp"><div class="fill" id="xp-fill"></div></div>
           </div>
         </div>
@@ -78,6 +79,14 @@
       if (!UI.tipEl.classList.contains('hidden')) UI.placeTip();
     });
     UI.tipEl = $('#tooltip');
+    // quest panel: click a quest to follow it with the arrow, click the header to open the log (right-click: collapse)
+    $('#tracker').addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      const q = e.target.closest('[data-q]');
+      if (q) { R.QuestLog.tracked = q.dataset.q; if (R.Guide) R.Guide.t = 0; R.Audio.play('click'); return; }
+      if (e.target.closest('[data-open]')) { if (e.button === 2) UI.trackerMin = !UI.trackerMin; else UI.open('quests'); }
+    });
+    $('#tracker').addEventListener('contextmenu', (e) => e.preventDefault());
     // dialog click to advance
     $('#dialog').addEventListener('mousedown', (e) => { if (!e.target.closest('.d-choice')) UI.dialogAdvance(); });
     UI.layout();
@@ -509,6 +518,11 @@
     set('hp-ghost', 'width', (hpGhost * 100).toFixed(1) + '%');
     set('hp-txt', 'text', Math.ceil(p.hp) + ' / ' + s.maxHp);
     set('mp-fill', 'width', (p.mp / s.maxMp * 100).toFixed(1) + '%');
+    const maxSt = p.maxStamina ? p.maxStamina() : 100;
+    set('st-fill', 'width', (Math.max(0, p.stamina) / maxSt * 100).toFixed(1) + '%');
+    if (UI.staminaFlash > 0) UI.staminaFlash -= dt;
+    const stb = document.getElementById('st-bar');
+    if (stb) { stb.classList.toggle('tired', !!p.tired || UI.staminaFlash > 0); stb.classList.toggle('full', p.stamina >= maxSt); }
     set('mp-txt', 'text', Math.floor(p.mp) + ' / ' + s.maxMp);
     const need = R.xpForLevel(p.level);
     set('xp-fill', 'width', (p.level >= R.MAX_LEVEL ? 100 : p.xp / need * 100).toFixed(1) + '%');
@@ -547,17 +561,27 @@
       Object.keys(p.status || {}).map((k) => `<div class="buff bad" title="${k}">${k.slice(0, 1).toUpperCase()}<small>${Math.ceil(p.status[k].t)}</small></div>`).join('') +
       (p.shield > 0 ? `<div class="buff shield">◈<small>${Math.ceil(p.shield)}</small></div>` : '');
     set('hud-buffs', 'html', bh);
-    // tracker
+    // quest panel: every active quest; the tracked one (followed by the arrow) is expanded
     const QL = R.QuestLog;
     const act = QL.activeList();
-    let th = '';
-    const show = QL.tracked && QL.state[QL.tracked] && QL.state[QL.tracked].status !== 'done' ? [QL.tracked].concat(act.filter((x) => x !== QL.tracked)) : act;
-    for (const id of show.slice(0, 3)) {
-      const q = R.Quests[id], st = QL.state[id];
-      th += `<div class="tq ${q.type}"><div class="tq-name">${q.type === 'main' ? '◆ ' : ''}${U.esc(q.name)}</div>`;
-      if (st.status === 'ready') th += `<div class="tq-obj done">Return to ${U.esc((R.NPCs[q.turnIn || q.giver] || {}).name || '???')}</div>`;
-      else q.objectives.forEach((o, i) => { const done = st.prog[i] >= (o.count || 1); th += `<div class="tq-obj ${done ? 'done' : ''}">${done ? '✔' : '•'} ${U.esc(QL.objText(q, o, i, st.prog[i]))}</div>`; });
-      th += '</div>';
+    const tracked = QL.tracked && act.includes(QL.tracked) ? QL.tracked : act[0];
+    let th = `<div class="tq-head" data-open="1"><span>📜 Quests <small>(${act.length})</small></span><span class="tq-key">${UI.trackerMin ? '▸' : '▾'} L</span></div>`;
+    if (!UI.trackerMin) {
+      if (!act.length) th += '<div class="tq-empty">No quests yet. Talk to villagers with a <b>!</b> above their heads.</div>';
+      for (const id of act.slice(0, 6)) {
+        const q = R.Quests[id], st = QL.state[id];
+        const isT = id === tracked;
+        const ready = st.status === 'ready';
+        const doneN = q.objectives.filter((o, i) => st.prog[i] >= (o.count || 1)).length;
+        th += `<div class="tq ${q.type}${isT ? ' tracked' : ''}${ready ? ' ready' : ''}" data-q="${id}" title="${isT ? 'Followed by the quest arrow' : 'Click to follow with the quest arrow'}">`;
+        th += `<div class="tq-name">${isT ? '➤ ' : ''}${q.type === 'main' ? '◆ ' : ''}${U.esc(q.name)}${!isT ? `<small> ${ready ? '✔' : doneN + '/' + q.objectives.length}</small>` : ''}</div>`;
+        if (isT) {
+          if (ready) th += `<div class="tq-obj done">✔ Return to ${U.esc((R.NPCs[q.turnIn || q.giver] || {}).name || '???')}</div>`;
+          else q.objectives.forEach((o, i) => { const done = st.prog[i] >= (o.count || 1); th += `<div class="tq-obj ${done ? 'done' : ''}">${done ? '✔' : '•'} ${U.esc(QL.objText(q, o, i, st.prog[i]))}</div>`; });
+        }
+        th += '</div>';
+      }
+      if (act.length > 6) th += `<div class="tq-empty">+${act.length - 6} more in the quest log</div>`;
     }
     set('tracker', 'html', th);
     // boss
@@ -590,6 +614,8 @@
     for (const x of M.exits) if (!x.hidden) dot(x.x + x.w / 2, x.y + x.h / 2, '#40c0ff', 4);
     for (const e of W.enemies) if (!e.dead) dot(e.x, e.y, e.boss ? '#ff40ff' : '#ff4040', e.boss ? 6 : 3);
     for (const n of W.npcs) { const m = R.QuestLog.markerFor(n.id); dot(n.x, n.y, m ? '#ffe040' : '#40ff80', m ? 5 : 3); }
+    const gt = R.Guide && R.Guide.cache;
+    if (gt && R.settings.guide !== false) { const on = Math.floor(performance.now() / 250) % 2; dot(gt.x, gt.y + 20, on ? '#ffd040' : '#fff4b0', 7); }
     const blink = Math.floor(performance.now() / 300) % 2;
     dot(p.x, p.y, blink ? '#ffffff' : '#ffe080', 4);
   };

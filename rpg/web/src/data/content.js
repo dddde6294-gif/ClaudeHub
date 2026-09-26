@@ -49,56 +49,77 @@
 
   // ---------------------------------------------------------------- bosses
   // A shared brain: circle the player, fire patterns, telegraph area blasts and summon adds.
+  // Three phases: below 60% HP it enrages (faster, bigger patterns); below 25% it goes berserk
+  // and chains two attacks at a time.
   function bossBrain(cfg) {
     return function (e, dt, sm) {
       const p = R.World.player;
       if (!p || p.dead) { e.anim = 'idle'; return; }
       R.World.combatT = 3;
       const m = e.mem;
-      const phase2 = e.hp < e.maxHp * 0.5;
-      if (phase2 && !m.p2) {
-        m.p2 = true; m.cd = 1.2; e.invuln = 1;
-        R.Audio.play('bossRoar'); FX.shake(8, 0.6); FX.flash(cfg.color, 0.3);
-        FX.ring(e.x, e.y, 5, 90, cfg.color, 0.6, 6);
-        R.UI.toast(e.def.name + ' is enraged!', 'bad');
+      const f = e.hp / e.maxHp;
+      const phase = f < 0.25 ? 3 : f < 0.6 ? 2 : 1;
+      if (phase > (m.phase || 1)) {
+        m.phase = phase; m.cd = 1.2; e.invuln = 1.2; m.cast = 1;
+        R.Audio.play('bossRoar'); FX.shake(9, 0.7); FX.flash(cfg.color, 0.35);
+        FX.ring(e.x, e.y, 5, 110, cfg.color, 0.7, 7);
+        FX.burst(e.x, e.y - 20, { n: 50, colors: [cfg.color, '#ffffff'], speed: 140, life: 0.8, glow: true });
+        R.UI.toast(phase === 3 ? e.def.name + ' goes berserk!' : e.def.name + ' is enraged!', 'bad');
+        // shockwave pushes you back when a new phase starts
+        R.Combat.hitCircle(e.x, e.y, 70, 'enemy', () => e.hitPlayer(0.6, { knock: 320 }));
+        if (cfg.onPhase) cfg.onPhase(e, phase);
       }
       e.face = p.x > e.x ? 1 : -1;
-      m.cd = (m.cd == null ? 1.5 : m.cd) - dt;
+      m.cd = (m.cd == null ? 1.2 : m.cd) - dt;
       if (m.cast > 0) { m.cast -= dt; e.anim = 'windup'; return; }
       if (m.cd <= 0) {
-        const pick = U.choose(cfg.moves);
-        pick(e, p, phase2);
-        m.cast = 0.4;
-        m.cd = (phase2 ? 1.1 : 1.7) + Math.random() * 0.5;
+        const n = phase === 3 ? 2 : 1;
+        for (let i = 0; i < n; i++) { const mv = U.choose(cfg.moves); World().later(i * 0.45, () => { if (!e.dead) mv(e, R.World.player, phase); }); }
+        m.cast = 0.35;
+        m.cd = [0, 1.45, 1.0, 0.8][phase] + Math.random() * 0.4;
         e.anim = 'attack';
         return;
       }
       const d = U.dist(e.x, e.y, p.x, p.y);
       const a = U.angle(e.x, e.y, p.x, p.y) + (d < cfg.keep ? Math.PI * 0.6 : 0.3);
-      e.moveAngle(a, e.def.spd * sm * (phase2 ? 1.3 : 1), dt);
+      e.moveAngle(a, e.def.spd * sm * [1, 1, 1.3, 1.5][phase], dt);
       e.anim = 'walk';
-      if (d < e.r + 8) { m.touch = (m.touch || 0) - dt; if (m.touch <= 0) { e.hitPlayer(0.7); m.touch = 0.8; } }
+      if (d < e.r + 8) { m.touch = (m.touch || 0) - dt; if (m.touch <= 0) { e.hitPlayer(0.8); m.touch = 0.7; } }
     };
   }
-  const ring = (col, n) => (e, p, p2) => { const k = p2 ? n + 6 : n; for (let i = 0; i < k; i++) e.shoot(i / k * U.TAU + e.animT, { speed: 95, color: col, size: 4, dmg: e.atk * 0.7 }); R.Audio.play('magic', { pitch: 0.5 }); };
-  const fan = (col, n, st) => (e, p, p2) => { const a = U.angle(e.x, e.y, p.x, p.y); const k = p2 ? n + 2 : n; for (let i = 0; i < k; i++) e.shoot(a + (i - (k - 1) / 2) * 0.18, { speed: 150, color: col, size: 3, dmg: e.atk * 0.8, status: st }); R.Audio.play('zap', { pitch: 0.6 }); };
-  const blast = (col, st) => (e, p, p2) => { const n = p2 ? 3 : 1; for (let i = 0; i < n; i++) { const x = p.x + (i ? U.rand(-40, 40) : 0), y = p.y + (i ? U.rand(-30, 30) : 0); e.telegraph(x, y, 32, 1.0, () => { FX.burst(x, y, { n: 25, colors: [col, '#ffffff'], speed: 80, glow: true, up: 30 }); FX.pillar(x, y, col, 0.5, 30); R.Audio.play('explode', { pitch: 1.3 }); R.Combat.hitCircle(x, y, 32, 'enemy', () => e.hitPlayer(1.4, { status: st })); }, col); } };
-  const summon = (id, n) => (e, p, p2) => { const k = p2 ? n + 1 : n; if (R.World.enemies.filter((x) => !x.dead && x.id === id).length > 5) return; for (let i = 0; i < k; i++) { const s = R.World.spawnEnemy(id, e.x + U.rand(-40, 40), e.y + U.rand(-30, 30), e.level - 1); if (s) s.state = 'chase'; } FX.burst(e.x, e.y - 20, { n: 30, color: '#b070ff', speed: 80, glow: true }); R.Audio.play('portal'); };
+  const World = () => R.World;
+  // Attack patterns. p2 = phase (1-3); higher phases fire more.
+  const ring = (col, n) => (e, p, ph) => { const k = n + (ph - 1) * 5; const off = e.animT * 2; for (let i = 0; i < k; i++) e.shoot(i / k * U.TAU + off, { speed: 100 + ph * 10, color: col, size: 4, dmg: e.atk * 0.75 }); R.Audio.play('magic', { pitch: 0.5 }); };
+  const spiral = (col) => (e, p, ph) => { const k = 14 + ph * 4; for (let i = 0; i < k; i++) World().later(i * 0.06, () => { if (!e.dead) { e.shoot(i * 0.55 + e.animT, { speed: 110, color: col, size: 3, dmg: e.atk * 0.6 }); e.shoot(i * 0.55 + e.animT + Math.PI, { speed: 110, color: col, size: 3, dmg: e.atk * 0.6 }); } }); R.Audio.play('magic', { pitch: 0.7 }); };
+  const fan = (col, n, st) => (e, p, ph) => { const a = U.angle(e.x, e.y, p.x, p.y); const k = n + (ph - 1) * 2; for (let w = 0; w < (ph === 3 ? 2 : 1); w++) World().later(w * 0.3, () => { if (e.dead) return; for (let i = 0; i < k; i++) e.shoot(a + (i - (k - 1) / 2) * 0.17, { speed: 160, color: col, size: 3, dmg: e.atk * 0.85, status: st }); }); R.Audio.play('zap', { pitch: 0.6 }); };
+  const blast = (col, st) => (e, p, ph) => { const n = ph + (ph === 3 ? 1 : 0); for (let i = 0; i < n; i++) { const lead = i === 0 ? 0.35 : 0; const x = p.x + p.vx * lead + (i ? U.rand(-50, 50) : 0), y = p.y + p.vy * lead + (i ? U.rand(-35, 35) : 0); e.telegraph(x, y, 34, 0.9, () => { FX.burst(x, y, { n: 25, colors: [col, '#ffffff'], speed: 80, glow: true, up: 30 }); FX.pillar(x, y, col, 0.5, 30); R.Audio.play('explode', { pitch: 1.3 }); R.Combat.hitCircle(x, y, 34, 'enemy', () => e.hitPlayer(1.5, { status: st })); }, col); } };
+  const summon = (id, n) => (e, p, ph) => { const k = n + ph - 1; if (R.World.enemies.filter((x) => !x.dead && x.id === id).length > 6) return; for (let i = 0; i < k; i++) { const s = R.World.spawnEnemy(id, e.x + U.rand(-40, 40), e.y + U.rand(-30, 30), e.level - 1); if (s) s.state = 'chase'; } FX.burst(e.x, e.y - 20, { n: 30, color: '#b070ff', speed: 80, glow: true }); R.Audio.play('portal'); };
+  // Charge: a red lane shows where it will rush, then it barrels through.
+  const charge = (col) => (e, p) => {
+    const a = U.angle(e.x, e.y, p.x, p.y), len = 220, sx = e.x, sy = e.y;
+    FX.add({ layer: 'ground', life: 0.7, draw(ctx, t) { ctx.save(); ctx.translate(sx, sy); ctx.rotate(a); ctx.fillStyle = U.rgba(col, 0.15 + t * 0.25); ctx.fillRect(0, -e.r, len * t, e.r * 2); ctx.strokeStyle = U.rgba(col, 0.6); ctx.strokeRect(0, -e.r, len, e.r * 2); ctx.restore(); } });
+    e.mem.cast = 1.2;
+    let hit = false;
+    for (let i = 0; i < 20; i++) World().later(0.7 + i * 0.025, () => { if (e.dead) return; e.moveAngle(a, 440, 0.025); FX.particle({ x: e.x, y: e.y, vx: U.rand(-30, 30), vy: -10, life: 0.3, color: col, size: 2 }); if (!hit && U.dist(e.x, e.y, R.World.player.x, R.World.player.y) < e.r + 10) { hit = true; e.hitPlayer(1.6, { knock: 300 }); } });
+  };
+  // Rain of telegraphed blasts over the arena.
+  const rain = (col, st) => (e, p, ph) => { for (let i = 0; i < 4 + ph * 2; i++) { const x = p.x + U.rand(-110, 110), y = p.y + U.rand(-70, 70); World().later(i * 0.12, () => e.telegraph(x, y, 24, 1.0, () => { FX.burst(x, y, { n: 14, colors: [col, '#ffffff'], speed: 60, glow: true }); R.Combat.hitCircle(x, y, 24, 'enemy', () => e.hitPlayer(1.1, { status: st })); }, col)); } R.Audio.play('fire', { pitch: 0.7 }); };
+  R.BossKit = { bossBrain, ring, spiral, fan, blast, summon, charge, rain };
 
   R.addEnemy({
-    id: 'lich', name: 'Mortis', title: 'The Bone Lich', boss: true, level: 9, hp: 1500, atk: 34, def: 8, spd: 34, xp: 900, gold: [150, 250], r: 12, height: 44, scale: 1.8,
+    id: 'lich', name: 'Mortis', title: 'The Bone Lich', boss: true, level: 9, hp: 2600, atk: 40, def: 10, spd: 38, xp: 1100, gold: [150, 250], r: 12, height: 44, scale: 1.8,
     sprite: 'robed', pal: { main: '#2a1a3a', head: 'skull', trim: '#b070ff', accent: '#b070ff', eye: '#ff40ff' }, knockResist: 1, immune: ['stun', 'freeze', 'poison', 'bleed'],
     light: { r: 60, color: '#b070ff' }, tags: ['undead', 'boss'], music: 'boss',
     drops: [{ item: 'potion', chance: 1, qty: [2, 3] }, { item: 'tome_xp', chance: 0.5 }],
     intro: ['Another warm body for my crypt...', 'Kneel, and I will make your bones immortal!'],
-    update: bossBrain({ color: '#b070ff', keep: 90, moves: [ring('#b070ff', 12), fan('#80ffff', 5, { slow: { amt: 0.4, dur: 2 } }), blast('#b070ff', null), summon('skeleton', 2)] }),
+    update: bossBrain({ color: '#b070ff', keep: 90, moves: [ring('#b070ff', 12), spiral('#b070ff'), fan('#80ffff', 5, { slow: { amt: 0.4, dur: 2 } }), blast('#b070ff', null), summon('skeleton', 2)] }),
   });
   R.addEnemy({
-    id: 'broodmother', name: 'Vexa', title: 'The Broodmother', boss: true, level: 9, hp: 1800, atk: 36, def: 10, spd: 46, xp: 1200, gold: [200, 300], r: 16, height: 30, scale: 2.6,
+    id: 'broodmother', name: 'Vexa', title: 'The Broodmother', boss: true, level: 9, hp: 3000, atk: 42, def: 12, spd: 50, xp: 1400, gold: [200, 300], r: 16, height: 30, scale: 2.6,
     sprite: 'spider', pal: { main: '#3a2a3a', mark: '#e03040', eye: '#80ff40' }, knockResist: 1, immune: ['stun', 'poison'], tags: ['insect', 'boss'], music: 'boss',
     drops: [{ item: 'potion', chance: 1, qty: [3, 4] }],
     intro: ['*The walls of the nest tremble. Hundreds of eyes open in the dark.*', 'Sssso... the little flame-thief comes to my nest.'],
-    update: bossBrain({ color: '#80ff40', keep: 60, moves: [fan('#a0ff60', 5, { poison: { dps: 12, dur: 4 } }), blast('#80ff40', { poison: { dps: 14, dur: 4 } }), summon('spiderling', 3), ring('#e0e0f0', 10)] }),
+    update: bossBrain({ color: '#80ff40', keep: 60, moves: [fan('#a0ff60', 5, { poison: { dps: 12, dur: 4 } }), blast('#80ff40', { poison: { dps: 14, dur: 4 } }), summon('spiderling', 3), ring('#e0e0f0', 10), charge('#80ff40')] }),
   });
 
   // ---------------------------------------------------------------- quests

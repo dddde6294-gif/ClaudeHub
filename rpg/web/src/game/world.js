@@ -470,12 +470,20 @@
       if (x.prompt) continue;
       if (p.x > x.x && p.x < x.x + x.w && p.y > x.y && p.y < x.y + x.h) {
         if (x.requires && !x.requires()) {
-          if (!x._warned) { R.UI.toast(x.locked || 'The way is blocked.', 'bad'); x._warned = true; }
-          // push back
-          p.x -= p.vx * dt * 2; p.y -= p.vy * dt * 2;
+          // remind every couple of seconds while you push against it
+          if (!x._warnT || W.time > x._warnT) {
+            R.UI.toast('🔒 ' + (x.locked || 'The way is blocked.'), 'bad');
+            R.Audio.play('error');
+            FX.text(p.x, p.y - 30, 'LOCKED', '#ff6060');
+            x._warnT = W.time + 2.5;
+          }
+          // push back out of the exit
+          const cx = x.x + x.w / 2, cy = x.y + x.h / 2;
+          const a = x.w > x.h ? (p.y < cy ? -Math.PI / 2 : Math.PI / 2) : (p.x < cx ? Math.PI : 0);
+          W.moveEntity(p, -Math.cos(a) * 60 * dt - p.vx * dt, -Math.sin(a) * 60 * dt - p.vy * dt);
         } else { W.useExit(x); }
         break;
-      } else x._warned = false;
+      }
     }
     // zones
     for (const z of W.map.zones) {
@@ -490,6 +498,7 @@
     clampCam();
     FX.update(dt);
     updateWeather(dt);
+    if (R.Guide) R.Guide.update(dt);
   };
 
   function separate() {
@@ -633,6 +642,19 @@
     // exits glow
     for (const x of M.exits) if (x.glow !== false && !x.hidden) {
       const a = 0.25 + Math.sin(W.time * 3) * 0.1;
+      const locked = x.requires && !x.requires();
+      if (locked) {
+        // red magic barrier with a lock
+        ctx.fillStyle = U.rgba('#ff3040', 0.25 + Math.sin(W.time * 4) * 0.1);
+        ctx.fillRect(x.x, x.y, x.w, x.h);
+        ctx.fillStyle = U.rgba('#ff8090', 0.7);
+        for (let i = 0; i < (x.w > x.h ? x.w : x.h); i += 6) { const o = (i + Math.floor(W.time * 12)) % 12 < 6 ? 1 : 0; if (x.w > x.h) ctx.fillRect(x.x + i, x.y + x.h / 2 - 1 + o, 3, 1); else ctx.fillRect(x.x + x.w / 2 - 1 + o, x.y + i, 1, 3); }
+        const lx = Math.round(x.x + x.w / 2), ly = Math.round(x.y + x.h / 2 + (x.y < 16 ? 10 : 0));
+        ctx.fillStyle = '#140c1c'; ctx.fillRect(lx - 5, ly - 5, 11, 11);
+        ctx.fillStyle = '#ffd040'; ctx.fillRect(lx - 4, ly - 1, 9, 6); ctx.fillRect(lx - 3, ly - 4, 1, 3); ctx.fillRect(lx + 3, ly - 4, 1, 3); ctx.fillRect(lx - 2, ly - 5, 5, 1);
+        ctx.fillStyle = '#6a4a10'; ctx.fillRect(lx, ly + 1, 1, 2);
+        continue;
+      }
       ctx.fillStyle = U.rgba(x.color || '#ffffff', a * (x.prompt ? 0.5 : 0.35));
       if (!x.prompt) ctx.fillRect(x.x, x.y, x.w, x.h);
     }
@@ -667,6 +689,7 @@
     // lighting
     drawLighting(ctx, cx, cy);
     drawWeather(ctx);
+    if (R.Guide) R.Guide.draw(ctx, cx, cy);
     // screen flash
     if (FX.flashT > 0) { ctx.fillStyle = U.rgba(FX.flashC, 0.35 * FX.flashT / FX.flashMax); ctx.fillRect(0, 0, G.W, G.H); }
     // low-hp vignette

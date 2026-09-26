@@ -25,6 +25,7 @@
   }
   R.Entity = Entity;
 
+  const W = () => R.World;
   const DIRS = ['right', 'down', 'left', 'up'];
   function dirFromAngle(a) { const i = Math.round(a / (Math.PI / 2)); return DIRS[((i % 4) + 4) % 4]; }
   R.dirFromAngle = dirFromAngle;
@@ -57,6 +58,7 @@
       this.castT = 0; this.castDur = 0;
       this.skillCd = {}; this.potionCd = 0;
       this.buffs = [];
+      this.stamina = 100; this.staminaT = 0; this.tired = false;
       this.stepT = 0;
       this.ghosts = [];
       this.recalc();
@@ -265,6 +267,19 @@
       const mv = locked ? { x: 0, y: 0 } : Input.move();
       const sm = R.Combat.speedMult(this);
 
+      // stamina: rolls, sprinting and heavy attacks spend it; it refills shortly after you stop
+      const maxSt = this.maxStamina();
+      this.staminaT -= dt;
+      if (this.staminaT <= 0 && this.rollT <= 0) this.stamina = Math.min(maxSt, this.stamina + (this.tired ? 22 : 38) * dt);
+      if (this.tired && this.stamina >= maxSt * 0.35) this.tired = false;
+      const wantSprint = !locked && Input.held('sprint') && Math.hypot(mv.x, mv.y) > 0.1 && this.atkT <= 0 && this.castT <= 0 && !this.tired;
+      this.sprinting = wantSprint && this.stamina > 0;
+      if (this.sprinting) {
+        this.stamina -= 24 * dt; this.staminaT = 0.6;
+        if (this.stamina <= 0) { this.stamina = 0; this.tired = true; FX.text(this.x, this.y - 30, 'TIRED', '#ffe070'); R.UI && (R.UI.staminaFlash = 0.6); }
+        if (Math.random() < dt * 14) FX.particle({ x: this.x + U.rand(-3, 3), y: this.y, vx: -mv.x * 30, vy: -mv.y * 30 - 5, life: 0.3, color: W.map.dustColor || '#c8b090', size: 2 });
+      }
+
       if (this.rollT > 0) {
         this.rollT -= dt;
         const sp = 230;
@@ -276,7 +291,7 @@
       } else {
         // attacking slows you down
         const atkSlow = this.atkT > 0 ? 0.45 : this.castT > 0 ? 0.3 : 1;
-        const speed = 78 * this.stats.spd * sm * atkSlow;
+        const speed = 78 * this.stats.spd * sm * atkSlow * (this.sprinting ? 1.5 : 1);
         this.vx = U.lerp(this.vx, mv.x * speed, Math.min(1, dt * 14));
         this.vy = U.lerp(this.vy, mv.y * speed, Math.min(1, dt * 14));
         W.moveEntity(this, this.vx * dt + this.kx * dt, this.vy * dt + this.ky * dt);
@@ -290,10 +305,11 @@
         else this.anim = moving ? 'walk' : 'idle';
         if (moving) {
           this.stepT -= dt;
-          if (this.stepT <= 0) { this.stepT = 0.28; R.Audio.play('step'); if (W.map.dustColor) FX.particle({ x: this.x, y: this.y, vy: -5, life: 0.3, color: W.map.dustColor, size: 1 }); }
+          if (this.stepT <= 0) { this.stepT = this.sprinting ? 0.19 : 0.28; R.Audio.play('step'); if (W.map.dustColor) FX.particle({ x: this.x, y: this.y, vy: -5, life: 0.3, color: W.map.dustColor, size: 1 }); }
         }
         if (!locked && sm > 0) {
-          if (Input.hit('dodge') && this.rollCd <= 0) this.roll(moving ? Math.atan2(mv.y, mv.x) : this.aim);
+          if (Input.hit('dodge') && this.rollCd <= 0) { if (this.spend(25)) this.roll(moving ? Math.atan2(mv.y, mv.x) : this.aim); }
+          else if (Input.hit('heavy') && this.atkCd <= 0 && this.castT <= 0) { if (this.spend(25)) this.attack(true); }
           else if (Input.held('attack') && !R.UI.pointerOverUI) this.attack();
           for (let i = 0; i < 4; i++) if (Input.hit('skill' + (i + 1))) this.castSkill(i);
           if (Input.hit('potion')) this.quickPotion('heal');
@@ -317,6 +333,18 @@
       if (this.anim === 'cast') this.frame = this.castT > this.castDur * 0.5 ? 0 : 1;
     }
 
+    maxStamina() { return 100 + ((this.stats && this.stats.stamina) || 0); }
+    // Spend stamina; false (with feedback) if there isn't enough.
+    spend(n) {
+      if (this.stamina < n) {
+        if (!this.tiredMsgT || this.tiredMsgT < W().time) { FX.text(this.x, this.y - 30, 'TIRED', '#ffe070'); R.Audio.play('error', { pitch: 1.4 }); this.tiredMsgT = W().time + 0.6; }
+        if (R.UI) R.UI.staminaFlash = 0.6;
+        return false;
+      }
+      this.stamina -= n; this.staminaT = 0.8;
+      return true;
+    }
+
     roll(angle) {
       this.rollT = 0.32; this.rollCd = 0.65; this.rollDir = angle;
       this.invuln = Math.max(this.invuln, 0.34);
@@ -331,15 +359,17 @@
       return { x: this.x + h.x, y: this.y + h.y };
     }
 
-    attack() {
+    attack(heavy) {
       if (this.atkCd > 0 || this.castT > 0) return;
       const w = this.weapon();
       const wt = this.weaponType();
       const spdMul = 1 + (this.stats.atkSpd || 0);
       const aim = this.aim;
-      this.combo = this.comboT > 0 ? (this.combo + 1) % 3 : 0;
+      this.combo = heavy ? 2 : this.comboT > 0 ? (this.combo + 1) % 3 : 0;
       const finisher = this.combo === 2;
-      this.atkCd = wt.cd / spdMul * (finisher ? 1.25 : 1);
+      const hv = heavy ? 1.7 : 1; // heavy attack: stronger, slower, costs stamina
+      this.atkCd = wt.cd / spdMul * (finisher ? 1.25 : 1) * (heavy ? 1.35 : 1);
+      if (heavy) { FX.shake(1.5, 0.1); FX.burst(this.x, this.y - 10, { n: 10, colors: ['#ffe070', '#ffb040'], speed: 50, life: 0.3, glow: true }); }
       this.atkDur = this.atkT = wt.dur / spdMul;
       this.comboT = this.atkCd + 0.4;
       this.atkAngle = aim;
@@ -364,7 +394,7 @@
             }
             let hits = 0;
             R.Combat.hitArc(cx, cy, aim, arc, range, 'player', (e) => {
-              const r = R.Combat.roll(this, wt.mult * (finisher ? 1.5 : 1), { critBonus: (wt.critBonus || 0) * 100 });
+              const r = R.Combat.roll(this, wt.mult * (finisher ? 1.5 : 1) * hv, { critBonus: (wt.critBonus || 0) * 100 });
               const st = {};
               if (eff.burn) st.burn = { dps: eff.burn, dur: 3 };
               if (eff.poison) st.poison = { dps: eff.poison, dur: 4 };
@@ -373,7 +403,7 @@
               if (this.hasBuff('Venom Coat')) st.poison = { dps: this.venomDps || 6, dur: 4 };
               if (wt.bleed && Math.random() < wt.bleed) st.bleed = { dps: Math.max(2, r.dmg * 0.2), dur: 3 };
               if (wt.stun && Math.random() < wt.stun + (finisher ? 0.2 : 0)) st.stun = { dur: 0.7 };
-              R.Combat.damage(e, r.dmg, { source: this, crit: r.crit, knock: wt.knock * (finisher ? 1.6 : 1), angle: U.angle(cx, cy, e.x, e.y), status: st });
+              R.Combat.damage(e, r.dmg, { source: this, crit: r.crit, knock: wt.knock * (finisher ? 1.6 : 1) * hv, angle: U.angle(cx, cy, e.x, e.y), status: st });
               if (eff.shock) { const n = R.Combat.nearestHostile(e.x, e.y, 'player', 70, [e]); if (n) { FX.lightning(e.x, e.y - 8, n.x, n.y - 8, '#9fd8ff'); R.Combat.damage(n, r.dmg * 0.5, { source: this, color: '#9fd8ff' }); } }
               hits++;
             });
@@ -389,10 +419,10 @@
         const n = eff.multishot || 1;
         for (let i = 0; i < n; i++) {
           const a = aim + (n > 1 ? (i - (n - 1) / 2) * 0.15 : 0) + U.rand(-0.03, 0.03);
-          const r = R.Combat.roll(this, wt.mult);
+          const r = R.Combat.roll(this, wt.mult * hv);
           R.Combat.projectile({
             x: cx + Math.cos(a) * 8, y: this.y + Math.sin(a) * 8, z: 10, angle: a, speed: wt.speed, dmg: r.dmg, crit: r.crit, team: 'player', kind: wt.projectile,
-            r: 3, life: wt.range / wt.speed, pierce: (wt.pierce || 0) + (eff.pierce || 0), knock: wt.knock, glow: L && L.glow, color: L && L.tip,
+            r: 3, life: wt.range / wt.speed, pierce: (wt.pierce || 0) + (eff.pierce || 0) + (heavy ? 2 : 0), knock: wt.knock, glow: L && L.glow, color: L && L.tip,
             status: eff.burn ? { burn: { dps: eff.burn, dur: 3 } } : eff.poison ? { poison: { dps: eff.poison, dur: 4 } } : eff.freeze ? { slow: { amt: 0.5, dur: 1.5 } } : null,
             explode: eff.explode,
           });
@@ -401,13 +431,13 @@
         R.Audio.play('magic');
         const el = eff.element || 'arcane';
         const col = (L && L.gem) || '#6fd8ff';
-        const r = R.Combat.roll(this, wt.mult, { magic: true });
+        const r = R.Combat.roll(this, wt.mult * hv, { magic: true });
         const kind = el === 'fire' ? 'fireball' : el === 'ice' ? 'ice' : wt.projectile;
         R.Combat.projectile({
           x: cx + Math.cos(aim) * 12, y: this.y + Math.sin(aim) * 12, z: 12, angle: aim, speed: wt.speed, dmg: r.dmg, crit: r.crit, team: 'player', kind,
           r: 4, life: wt.range / wt.speed, color: col, knock: wt.knock, homing: eff.homing || 0,
           status: el === 'fire' ? { burn: { dps: Math.max(2, r.dmg * 0.15), dur: 3 } } : el === 'ice' ? { slow: { amt: 0.5, dur: 2 } } : el === 'poison' ? { poison: { dps: Math.max(2, r.dmg * 0.2), dur: 4 } } : null,
-          chain: el === 'lightning' ? 2 : 0, explode: eff.explode,
+          chain: el === 'lightning' ? 2 : 0, explode: eff.explode || (heavy ? { r: 24, mult: 0.5 } : null), size: heavy ? 5 : undefined,
         });
         FX.burst(cx + Math.cos(aim) * 14, cy + Math.sin(aim) * 14 + 10 - 12, { n: 6, color: col, speed: 40, life: 0.25, glow: true });
       }
