@@ -35,6 +35,23 @@
   };
   const add = R.addItem;
 
+  // Dynamic shop stock: NPC shops can use `items: R.shopStock({...})` so new gear shows up automatically.
+  // filter: {slots:[...], types:[weapon types], minLevel, maxLevel, rarities:[...], ids:[always include], limit}
+  // maxLevel may be a function (e.g. () => player level + 3) so stock grows with the hero.
+  R.shopStock = function (f) {
+    return function () {
+      const p = R.World && R.World.player;
+      const maxL = typeof f.maxLevel === 'function' ? f.maxLevel(p) : f.maxLevel == null ? 99 : f.maxLevel;
+      const minL = typeof f.minLevel === 'function' ? f.minLevel(p) : f.minLevel || 0;
+      let list = Object.values(I).filter((it) => !it.noShop && !it.dropsFrom && (!f.slots || f.slots.includes(it.slot)) && (!f.types || f.types.includes(it.type)) &&
+        it.level >= minL && it.level <= maxL && (!f.rarities || f.rarities.includes(it.rarity)) && (!f.filter || f.filter(it)));
+      list.sort((a, b) => a.level - b.level || a.price - b.price);
+      if (f.limit && list.length > f.limit) list = list.slice(-f.limit);
+      const ids = (f.ids || []).filter((id) => I[id]).concat(list.map((it) => it.id));
+      return [...new Set(ids)];
+    };
+  };
+
   // ---- starter weapons (one per class) --------------------------------------
   add({ id: 'rusty_sword', name: 'Rusty Sword', slot: 'weapon', type: 'sword', dmg: 6, price: 8, look: { type: 'sword', blade: '#a89a8a', handle: '#5a3a20', guard: '#7a6a5a' }, desc: 'Seen better days.' });
   add({ id: 'hunting_bow', name: 'Hunting Bow', slot: 'weapon', type: 'bow', dmg: 5, price: 10, look: { type: 'bow', blade: '#8a5a30' } });

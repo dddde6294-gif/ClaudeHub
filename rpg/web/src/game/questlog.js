@@ -112,15 +112,31 @@
     const rw = q.rewards || {};
     if (rw.gold) { p.gold += rw.gold; R.Audio.play('coin'); }
     for (const it of rw.items || []) p.addItem(it, 1);
+    // rewards.gear: {rarity, level?} -> a random piece of gear your class can use
+    const gearRewards = [];
+    for (const g of [].concat(rw.gear || [])) {
+      const it = QL.pickGear(g.level || q.level || p.level, g.rarity, g.slot);
+      if (it) { p.addItem(it.id, 1); gearRewards.push(it); }
+    }
     if (rw.xp) p.gainXp(rw.xp);
     R.Audio.play('quest');
     R.UI.banner('QUEST COMPLETE', q.name + (rw.gold ? '   +' + rw.gold + ' gold' : '') + (rw.xp ? '   +' + rw.xp + ' XP' : ''));
     for (const it of rw.items || []) R.UI.lootToast(R.Items[it], 1);
+    for (const it of gearRewards) R.UI.lootToast(it, 1);
     if (q.onComplete) q.onComplete();
     if (QL.tracked === id) QL.tracked = QL.activeList()[0] || null;
     R.events.emit('quest:complete', { quest: id });
     QL.autoStart();
     if (R.Save && R.settings.autosave !== false) R.Save.autosave();
+  };
+
+  QL.pickGear = function (level, rarity, slot) {
+    const p = R.World.player;
+    const all = Object.values(R.Items).filter((it) => R.SLOTS.includes(it.slot) && !it.dropsFrom && (!slot || it.slot === slot));
+    const fit = (lo, hi, rar) => all.filter((it) => it.level >= lo && it.level <= hi && (!rar || it.rarity === rar) && p.canEquip(it));
+    const c = fit(level - 3, level + 1, rarity).concat([]);
+    const pool = c.length ? c : fit(level - 8, level + 3, rarity).length ? fit(level - 8, level + 3, rarity) : fit(0, level + 3, null);
+    return pool.length ? U.choose(pool) : null;
   };
 
   QL.activeList = () => Object.keys(QL.state).filter((id) => QL.state[id].status !== 'done').sort((a, b) => (R.Quests[a].type === 'main' ? -1 : 1) - (R.Quests[b].type === 'main' ? -1 : 1));

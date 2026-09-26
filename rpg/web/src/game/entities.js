@@ -119,6 +119,9 @@
         if (!cls.weapons.includes(it.type)) return false;
       }
       if (it.classes && !it.classes.includes(this.cls)) return false;
+      // armor weight: light / medium / heavy, limited per class (see data/classes.js)
+      const wgt = it.weight || (it.look && it.look.weight);
+      if (wgt && !R.Classes[this.cls].armor.includes(wgt)) return false;
       if (it.slot === 'offhand') {
         const w = this.weapon();
         if (w && R.WeaponTypes[w.type] && R.WeaponTypes[w.type].twoHanded) return false;
@@ -130,6 +133,8 @@
       if (it.level > this.level) return 'Requires level ' + it.level;
       if (!this.canEquip(it)) {
         if (it.slot === 'offhand') { const w = this.weapon(); if (w && R.WeaponTypes[w.type] && R.WeaponTypes[w.type].twoHanded) return 'Your weapon needs both hands'; }
+        const wgt = it.weight || (it.look && it.look.weight);
+        if (wgt && !R.Classes[this.cls].armor.includes(wgt)) return R.Classes[this.cls].name + 's cannot wear ' + wgt + ' armor';
         return R.Classes[this.cls].name + 's cannot use this';
       }
       return '';

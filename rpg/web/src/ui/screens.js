@@ -319,6 +319,7 @@
         const rw = q.rewards || {};
         el('div', 'sec-title', 'Rewards', det);
         const rr = el('div', 'ql-rewards', `${rw.xp ? `<span class="rw">${rw.xp} XP</span>` : ''}${rw.gold ? `<span class="rw"><span class="coin"></span>${rw.gold}</span>` : ''}`, det);
+        for (const g of [].concat(rw.gear || [])) el('span', 'rw', `<span style="color:${(R.G.RARITY[g.rarity] || R.G.RARITY.common).color}">${(R.G.RARITY[g.rarity] || R.G.RARITY.common).name} ${g.slot ? R.SLOT_NAMES[g.slot] : 'gear'} for your class</span>`, rr);
         for (const id of rw.items || []) { const it = R.Items[id]; if (!it) continue; const c = el('span', 'rw item', null, rr); c.appendChild(UI.itemIcon(it, 2)); el('span', null, `<span style="color:${UI.rarityColor(it)}">${U.esc(it.name)}</span>`, c); UI.bindTip(c, () => UI.itemTip(it)); }
         if (st.status !== 'done') UI.button(det, QL.tracked === questSel ? 'Tracking' : 'Track Quest', () => { QL.tracked = questSel; UI.refresh(); }, QL.tracked === questSel ? 'sel' : '');
       }

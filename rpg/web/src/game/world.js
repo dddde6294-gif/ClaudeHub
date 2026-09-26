@@ -347,7 +347,17 @@
     const drops = [];
     if (def.gold) { const g = U.randi(def.gold[0], def.gold[1]) * (e.elite ? 3 : 1); if (g > 0) drops.push({ gold: g }); }
     for (const d of def.drops || []) {
-      if (Math.random() < d.chance * (e.elite ? 2 : 1)) drops.push({ item: d.item, qty: d.qty ? U.randi(d.qty[0], d.qty[1]) : 1 });
+      if (Math.random() >= d.chance * (e.elite ? 2 : 1)) continue;
+      if (d.item) drops.push({ item: d.item, qty: d.qty ? U.randi(d.qty[0], d.qty[1]) : 1 });
+      else if (d.rarity) { const it = W.randomGear(d.level || e.level, 0, d.rarity); if (it) drops.push({ item: it.id }); }
+    }
+    // items tagged dropsFrom: [enemyId] (unique boss loot). Bosses always drop one, preferring your class.
+    const uniq = Object.values(R.Items).filter((it) => it.dropsFrom && it.dropsFrom.includes(def.id));
+    if (uniq.length && (e.boss || Math.random() < (def.uniqueChance || 0.03))) {
+      const p = W.player;
+      const mine = uniq.filter((it) => p && p.canEquip(it));
+      const pick = U.choose(mine.length ? mine : uniq);
+      drops.push({ item: pick.id });
     }
     // generic equipment drops from level-appropriate pool
     const chance = e.boss ? 1 : e.elite ? 0.5 : (def.gearChance != null ? def.gearChance : 0.07);
@@ -359,8 +369,14 @@
   };
   // Pick a random equippable item near a level; luck (0..1) shifts rarity up.
   const RW = { common: 60, uncommon: 28, rare: 10, epic: 2.5, legendary: 0.5, mythic: 0 };
-  W.randomGear = function (level, luck) {
-    const pool = Object.values(R.Items).filter((it) => R.SLOTS.includes(it.slot) && !it.noDrop && it.level <= level + 2 && it.level >= level - 6);
+  // rarity (optional) forces an exact rarity; falls back to any rarity if none fit.
+  W.randomGear = function (level, luck, rarity) {
+    let pool = Object.values(R.Items).filter((it) => R.SLOTS.includes(it.slot) && !it.noDrop && !it.dropsFrom && it.level <= level + 2 && it.level >= level - 6);
+    if (rarity) {
+      const exact = pool.filter((it) => it.rarity === rarity);
+      if (exact.length) pool = exact;
+      else { const any = Object.values(R.Items).filter((it) => R.SLOTS.includes(it.slot) && !it.noDrop && it.rarity === rarity && it.level <= level + 4); if (any.length) pool = any; }
+    }
     if (!pool.length) return null;
     // prefer items the player can use (70%)
     const p = W.player;
