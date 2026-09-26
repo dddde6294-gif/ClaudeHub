@@ -86,12 +86,21 @@ canvas.pix { image-rendering: pixelated; image-rendering: crisp-edges; display: 
 .minimap canvas { image-rendering: pixelated; width: 200px; height: 150px; display: block; }
 .mm-name { position: absolute; bottom: 0; left: 0; right: 0; text-align: center; font: bold 12px var(--serif); background: rgba(0,0,0,.6); color: var(--gold); padding: 2px; }
 .hud-gold { background: var(--panel); border: 2px solid var(--gold-d); border-radius: 6px; padding: 3px 10px; font-weight: bold; color: #ffe080; }
-.tracker { position: absolute; right: 14px; top: 212px; width: 280px; display: flex; flex-direction: column; gap: 8px; }
-.tq { background: linear-gradient(90deg, rgba(20,12,28,0), rgba(20,12,28,.8) 20%); padding: 6px 8px 6px 28px; text-align: right; border-right: 3px solid var(--gold-d); }
-.tq.main { border-right-color: #ffb020; }
-.tq-name { font: bold 15px var(--serif); color: var(--gold); text-shadow: 0 1px 0 #000; }
-.tq.main .tq-name { color: #ffc040; }
-.tq-obj { font-size: 13px; color: var(--text); text-shadow: 0 1px 0 #000; }
+.tracker { position: absolute; right: 14px; top: 212px; width: 290px; display: flex; flex-direction: column; gap: 4px; pointer-events: auto; background: rgba(14, 9, 20, .72); border: 2px solid var(--gold-d); border-radius: 8px; padding: 6px; box-shadow: 0 0 0 2px var(--ink); }
+.tq-head { display: flex; justify-content: space-between; align-items: center; font: bold 16px var(--serif); color: var(--gold); cursor: pointer; padding: 0 2px 3px; border-bottom: 1px solid rgba(232,192,96,.3); }
+.tq-head small { color: var(--dim); font-size: 13px; }
+.tq-key { font: bold 11px var(--font); color: var(--ink); background: var(--gold); border-radius: 4px; padding: 1px 6px; }
+.tq-empty { font-size: 13px; color: var(--dim); padding: 4px 2px; }
+.tq-empty b { color: #ffe040; }
+.tq { padding: 4px 6px; border-left: 3px solid transparent; border-radius: 4px; cursor: pointer; }
+.tq:hover { background: rgba(232,192,96,.1); }
+.tq.tracked { background: rgba(232,192,96,.12); border-left-color: var(--gold); }
+.tq.main.tracked { border-left-color: #ffb020; }
+.tq-name { font: bold 14px var(--serif); color: var(--text); text-shadow: 0 1px 0 #000; }
+.tq-name small { color: var(--dim); font: 12px var(--font); }
+.tq.main .tq-name, .tq.tracked .tq-name { color: #ffc040; }
+.tq.ready .tq-name small { color: var(--good); }
+.tq-obj { font-size: 13px; color: var(--text); text-shadow: 0 1px 0 #000; padding-left: 10px; }
 .tq-obj.done { color: var(--good); }
 .skillbar { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; background: var(--panel); border: 3px solid var(--gold-d); border-radius: 10px; padding: 7px; box-shadow: 0 0 0 2px var(--ink); }
 .skillbar .sep { width: 2px; background: var(--gold-d); margin: 0 4px; }
