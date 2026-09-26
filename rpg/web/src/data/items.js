@@ -40,7 +40,7 @@
   // maxLevel may be a function (e.g. () => player level + 3) so stock grows with the hero.
   R.shopStock = function (f) {
     return function () {
-      const p = R.World && R.World.player;
+      const p = (R.World && R.World.player) || { level: 1 };
       const maxL = typeof f.maxLevel === 'function' ? f.maxLevel(p) : f.maxLevel == null ? 99 : f.maxLevel;
       const minL = typeof f.minLevel === 'function' ? f.minLevel(p) : f.minLevel || 0;
       let list = Object.values(I).filter((it) => !it.noShop && !it.dropsFrom && (!f.slots || f.slots.includes(it.slot)) && (!f.types || f.types.includes(it.type)) &&
