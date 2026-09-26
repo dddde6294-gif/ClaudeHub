@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "donuthud",
+  "version": "${version}",
+  "name": "Donut HUD",
+  "description": "Shows the cheapest diamond pickaxe on /ah and the best diamond price in /orders on DonutSMP. Drag it anywhere and pick your colors.",
+  "authors": [
+    "dddde6294-gif"
+  ],
+  "contact": {
+    "sources": "https://github.com/dddde6294-gif/ClaudeHub"
+  },
+  "icon": "assets/donuthud/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.donuthud.DonutHud"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

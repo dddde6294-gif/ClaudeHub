@@ -12,7 +12,7 @@ A live dashboard for your Claude Code agents. It shows how many tokens each sess
 - **Live status:** which agents are working right now; subagents appear under the session that started them
 - **Message a session:** a chat drawer that sends your message to the session and streams back its reply
 
-Also in this repo: **[Donut HUD](donut/README.md)**, a DonutSMP price HUD for diamond pickaxes and diamond orders, published at <https://dddde6294-gif.github.io/ClaudeHub/donut/>.
+Also in this repo, for DonutSMP: the **[Donut HUD mod](donut-mod/README.md)**, an in-game overlay with the cheapest diamond pickaxe on /ah and the best diamond price in /orders, and a **[web version](donut/README.md)** that uses DonutSMP's API.
 
 ## Quick start
 

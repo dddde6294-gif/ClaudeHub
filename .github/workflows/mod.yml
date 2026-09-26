@@ -1,0 +1,36 @@
+name: Build Donut HUD mod
+
+on:
+  push:
+    branches: [main]
+    paths: ['donut-mod/**', '.github/workflows/mod.yml']
+  pull_request:
+    paths: ['donut-mod/**', '.github/workflows/mod.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: donut-mod
+    steps:
+      - uses: actions/checkout@v5
+      # Fabric Loom 1.18 runs on Java 25; the mod targets Java 21.
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+      - run: ./gradlew build --no-daemon
+      # Starts the real game with a test server and checks the HUD end to end.
+      - run: xvfb-run -a ./gradlew runClientGameTest --no-daemon
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: donut-hud
+          path: |
+            donut-mod/build/libs/donut-hud-*.jar
+            donut-mod/build/run/clientGameTest/screenshots/
